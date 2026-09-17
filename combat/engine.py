@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 import json
 from pathlib import Path
-from . import positioning
+from . import positioning, retreat
 
 
 @dataclass
@@ -18,6 +18,8 @@ class Character:
     target: str | None = None
     phase_end_tick: int = 0
     incapacitated: bool = False
+    retreating: bool = False
+    escaped: bool = False
     band: str = field(init=False)
     reached: str = "Frontline"
     engagements: set = field(default_factory=set)
@@ -61,6 +63,7 @@ class Simulation:
         self.positioning = encounter.get("positioning", False)
         self.characters = {d["id"]: Character(d) for d in encounter["combatants"]}
         self.validate()
+        retreat.initialize(self)
 
     def ticks(self, seconds):
         ratio = Decimal(str(seconds)) / Decimal(str(self.balance["tick_seconds"]))
@@ -102,6 +105,11 @@ class Simulation:
                     raise ValueError("Opportunity Attack must reference an available melee physical attack")
             for key in d["actions"] + d["defenses"]:
                 a = self.actions[key]
+                conditions = a.get("usage_conditions", {})
+                if not isinstance(conditions, dict) or set(conditions) - {"prevent_when_exposed"}:
+                    raise ValueError("Unknown action usage condition")
+                if "prevent_when_exposed" in conditions and not isinstance(conditions["prevent_when_exposed"], bool):
+                    raise ValueError("prevent_when_exposed must be a boolean")
                 if a["category"] == "defense":
                     if key not in {"block", "dodge", "parry", "brace"}:
                         raise ValueError("Unknown active defense")
@@ -125,12 +133,12 @@ class Simulation:
                 if a["category"] == "defense":
                     continue
                 if a["category"] == "movement":
-                    if a["direction"] not in {"advance", "withdraw"} or a["movement_kind"] not in {"breakthrough", "disengage", "move"}:
+                    if a["direction"] not in {"advance", "withdraw"} or a["movement_kind"] not in {"breakthrough", "withdraw", "move"}:
                         raise ValueError("Invalid movement direction or kind")
                 elif a["category"] != "physical_attack" or a["target_type"] != "enemy" or a["range_requirement"] not in {"duel", "melee", "ranged"}:
                     raise ValueError("Only physical attacks and band movement are implemented")
-                if a["effects"] or a["usage_conditions"]:
-                    raise ValueError("Effects and usage conditions are not implemented yet")
+                if a["effects"]:
+                    raise ValueError("Action effects are not implemented yet")
                 if set(a["allowed_defenses"]) - {"block", "dodge", "parry", "brace"}:
                     raise ValueError("Unknown allowed defense")
                 if a.get("parryability", "parryable") not in {"parryable", "difficult", "not_parryable"}:
@@ -139,32 +147,57 @@ class Simulation:
                     raise ValueError("Invalid action resource or power")
                 if self.ticks(a["preparation_seconds"]) < 1 or self.ticks(a["recovery_seconds"]) < 1:
                     raise ValueError("Preparation and recovery must each take at least one tick")
+        retreat.validate(self)
 
     def log(self, event, actor=None, **data):
         self.events.append({"timestamp": float(Decimal(self.tick) * Decimal(str(self.balance["tick_seconds"]))),
                             "event": event, "actor": actor, **data})
 
     def active(self):
-        return [f for f in self.characters.values() if not f.incapacitated]
+        return [f for f in self.characters.values() if not f.incapacitated and not f.escaped]
 
     def completion(self):
         party = self.encounter["party_team"]
         alive = self.active()
-        if not any(f.definition["team"] == party for f in alive):
+        survivors = [f for f in self.characters.values() if f.definition["team"] == party and not f.incapacitated]
+        if not survivors:
             return "Defeat"
+        if all(f.escaped for f in survivors):
+            return "Successful Retreat"
         if not any(f.definition["team"] != party for f in alive):
             return "Victory"
         return None
 
+    def action_block_reason(self, actor, action):
+        if action.get("usage_conditions", {}).get("prevent_when_exposed", False):
+            if any(positioning.can_access(enemy, actor) for enemy in self.active()):
+                return "actor is Exposed; action requires protection from melee access"
+        return None
+
     def decide(self, actor):
+        if actor.incapacitated or actor.escaped:
+            return
         candidates, rejected = [], []
         tactics = actor.definition["tactics"]
         for key in actor.definition["actions"]:
             action = self.actions[key]
+
             available = getattr(actor, action["resource_type"])
-            if available + 1e-9 < action["resource_cost"]:
+            if actor.retreating and not retreat.is_withdraw(action):
+                rejected.append({"action": key, "reason": "party retreat active; prioritize Withdraw", "available": available})
+                continue
+            if retreat.is_withdraw(action) and not actor.retreating:
+                rejected.append({"action": key, "reason": "Withdraw is reserved for active retreat", "available": available})
+                continue
+            cost = retreat.action_cost(self, actor, action)
+            reason = self.action_block_reason(actor, action)
+            if reason:
+                rejected.append({"action": key, "reason": reason, "available": available})
+                continue
+            if available + 1e-9 < cost:
                 rejected.append({"action": key, "reason": "insufficient resource", "available": available})
                 continue
+
             movement = action["category"] == "movement"
             if movement:
                 reason = positioning.movement_reason(self, actor, action)
@@ -182,7 +215,7 @@ class Simulation:
                 parts = {"base_usefulness": action["base_usefulness"],
                          "tactical_bonus": tactics["action_bonuses"].get(key, 0),
                          "target_preference": tactics["target_preferences"].get(target.id, 0),
-                         "resource_penalty": -action["resource_cost"] * tactics["resource_penalty_per_point"]}
+                         "resource_penalty": -cost * tactics["resource_penalty_per_point"]}
                 if self.positioning and not movement:
                     parts["engagement_bonus"] = tactics.get("engaged_target_bonus", 0) if target.id in actor.controlled_by | actor.engagements else 0
                     parts["penetrating_threat_bonus"] = tactics.get("penetrating_target_bonus", 0) if target.reached != "Frontline" else 0
@@ -199,7 +232,7 @@ class Simulation:
                  reason="highest utility; ties use action ID then target ID")
         actor.action, actor.target = selected["action"], selected["target"]
         a = self.actions[actor.action]
-        self.spend(actor, a["resource_type"], a["resource_cost"], "preparation", actor.action)
+        self.spend(actor, a["resource_type"], retreat.action_cost(self, actor, a), "preparation", actor.action)
         actor.phase = "Preparing"
         actor.phase_end_tick = self.tick + self.ticks(a["preparation_seconds"])
         self.log("preparation_start", actor.id, action=actor.action, target=actor.target,
@@ -219,8 +252,10 @@ class Simulation:
         tactics = target.definition["tactics"]
         for key in sorted(target.definition["defenses"]):
             template = self.actions[key]
-            reason = None
-            if key not in action["allowed_defenses"]:
+            reason = self.action_block_reason(target, template)
+            if reason:
+                pass
+            elif key not in action["allowed_defenses"]:
                 reason = "attack does not allow this defense"
             elif key == "parry" and action.get("parryability", "parryable") == "not_parryable":
                 reason = "attack is not parryable"
@@ -264,10 +299,14 @@ class Simulation:
 
     def opportunity_attack(self, controller, mover):
         key = controller.definition.get("opportunity_attack")
-        if not key or controller.incapacitated:
+        if not key or controller.incapacitated or controller.escaped or mover.incapacitated or mover.escaped:
             self.log("opportunity_skipped", controller.id, target=mover.id, reason="no available Opportunity Attack")
             return
         a = self.actions[key]
+        reason = self.action_block_reason(controller, a)
+        if reason:
+            self.log("opportunity_skipped", controller.id, target=mover.id, reason=reason)
+            return
         if a["range_requirement"] == "ranged":
             self.log("opportunity_skipped", controller.id, target=mover.id, reason="ranged Opportunity Attacks are not supported")
             return
@@ -279,6 +318,8 @@ class Simulation:
         self.execute(controller, action_key=key, target_id=mover.id, opportunity=True)
 
     def execute(self, actor, *, action_key=None, target_id=None, opportunity=False):
+        if actor.incapacitated or actor.escaped:
+            return
         action_key = actor.action if action_key is None else action_key
         a = self.actions[action_key]
         target = self.characters[actor.target if target_id is None else target_id]
@@ -286,10 +327,14 @@ class Simulation:
             actor.phase = "Executing"
         stagger_seconds = 0
         self.log("execution", actor.id, action=action_key, target=target.id, **({"opportunity": True} if opportunity else {}))
-        if a["category"] == "movement":
+        blocked = self.action_block_reason(actor, a)
+        if blocked:
+            self.log("action_cancelled", actor.id, action=action_key, target=target.id,
+                     reason=f"{blocked}; cost not refunded; normal recovery applies")
+        elif a["category"] == "movement":
             positioning.execute_movement(self, actor, action_key)
-        elif target.incapacitated:
-            self.log("action_cancelled", actor.id, reason="target incapacitated; cost not refunded")
+        elif target.incapacitated or target.escaped:
+            self.log("action_cancelled", actor.id, reason="target escaped or incapacitated; cost not refunded")
         elif self.positioning and not positioning.attack_access(actor, target, a):
             self.log("action_cancelled", actor.id, reason=f"target moved outside {a['range_requirement']} access; cost not refunded")
         else:
@@ -326,7 +371,7 @@ class Simulation:
                 self.log("stagger_ignored", actor.id, source=target.id,
                          reason="Opportunity Attacks preserve the controller's current action timing")
             return
-        if actor.incapacitated:
+        if actor.incapacitated or actor.escaped:
             return
         actor.phase = "Recovering"
         duration_ticks = self.ticks(a["recovery_seconds"]) + self.ticks(stagger_seconds)
@@ -344,10 +389,11 @@ class Simulation:
         self.log("encounter_start", name=self.encounter["name"], order=sorted(self.characters),
                  rules="phase completions in ID order, then idle decisions in ID order")
         positioning.refresh(self)
+        retreat.check(self)
         for tick in range(self.ticks(self.balance["max_duration_seconds"]) + 1):
             self.tick = tick
             for actor in sorted(self.active(), key=lambda f: f.id):
-                if actor.incapacitated:
+                if actor.incapacitated or actor.escaped:
                     continue
                 if actor.phase == "Preparing" and tick >= actor.phase_end_tick:
                     self.execute(actor)
@@ -357,6 +403,7 @@ class Simulation:
                 self.result = self.completion()
                 if self.result:
                     break
+                retreat.check(self)
             if self.result:
                 break
             if tick == self.ticks(self.balance["max_duration_seconds"]):
@@ -365,14 +412,19 @@ class Simulation:
             for actor in sorted(self.active(), key=lambda f: f.id):
                 if actor.phase == "Idle":
                     self.decide(actor)
-        self.log("encounter_complete", result=self.result, reason="time limit" if self.result == "Unresolved" else "one team incapacitated")
+                    retreat.check(self)
+        reason = {"Unresolved": "time limit", "Successful Retreat": "all surviving party members escaped",
+                  "Defeat": "no surviving party members", "Victory": "no active hostile combatants"}[self.result]
+        self.log("encounter_complete", result=self.result, reason=reason)
         return self.report()
 
     def report(self):
         return {"encounter": self.encounter["name"], "result": self.result,
+                "retreat_active": self.retreat_active,
                 "duration_seconds": self.events[-1]["timestamp"], "event_count": len(self.events),
                 "combatants": [{"id": f.id, "name": f.definition["name"], "health": f.health,
                                 "stamina": f.stamina, "mana": f.mana, "incapacitated": f.incapacitated,
+                                "retreating": f.retreating, "escaped": f.escaped,
                                 "health_lost": f.definition["maximum_health"] - f.health,
                                 "stamina_spent": f.definition["maximum_stamina"] - f.stamina,
                                 **({"band": f.band, "opposing_band_reached": f.reached,
@@ -381,8 +433,11 @@ class Simulation:
                                for f in sorted(self.characters.values(), key=lambda f: f.id)]}
 
 
-def load_simulation(config_dir, encounter_path=None):
+def load_simulation(config_dir, encounter_path=None, *, duel=None, positions="frontline"):
     def read(name):
         return json.loads((Path(config_dir) / f"{name}.json").read_text(encoding="utf-8"))
     encounter = json.loads(Path(encounter_path).read_text(encoding="utf-8")) if encounter_path else read("encounter")
+    if duel is not None:
+        from .encounters import make_duel
+        encounter = make_duel(encounter, *duel, positions=positions)
     return Simulation(read("balance"), read("actions"), encounter)

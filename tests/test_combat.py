@@ -1,3 +1,4 @@
+from scenarios import duel_fixture
 import copy
 from pathlib import Path
 import unittest
@@ -10,7 +11,7 @@ CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 def block_only_simulation():
     """Keep the original foundation checks independent of new defense choices."""
-    sim = load_simulation(CONFIG)
+    sim = duel_fixture()
     for character in sim.characters.values():
         character.definition["defenses"] = ["block"]
     return sim

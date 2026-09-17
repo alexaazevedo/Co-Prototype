@@ -21,6 +21,38 @@ Use `--output output/experiment-1` to retain separate experiments, and
 
 ## What this stage implements
 
+Select a duel directly from an existing encounter without editing its JSON:
+
+```powershell
+python -m combat --encounter config/formation.json --duel gareth talen --positions frontline
+python -m combat --encounter config/formation.json --duel gareth talen --positions base
+```
+
+`frontline` (the default) starts both characters at Frontline. `base` preserves
+their configured bands. Both enable the normal positioning, engagement and
+exposure rules, including restrictions on ranged actions. The two selected
+characters are copied onto opposing teams; their other definitions and the source
+file remain unchanged. Victory/Defeat is from the first character's perspective.
+Existing action lists determine whether they can close distance in base mode.
+Logs default to `output/duels/FIRST-vs-SECOND/MODE/`; `--output` overrides this.
+Repeated runs of the same matchup and mode replace that folder's result files.
+
+To compare defenses using the current JSON settings:
+
+```powershell
+python -m combat.defense_matrix
+```
+
+This prints and saves damage remaining for Block, Dodge, Parry and Brace at
+Defense Quality 0–120 in steps of 5, against Attack Quality 80 and incoming damage
+100. It assumes zero armor, sufficient Stamina, and a normally parryable attack.
+The damage input is already incoming damage; character capability and skill do
+not rescale it. Results are saved to `output/defense_matrix.csv` and a readable
+`output/defense_matrix.txt`. Each run reads the latest defense configuration.
+Use `--attack-quality`, `--damage`, `--min-quality`, `--max-quality`, `--step`,
+`--config` or `--output` to vary the comparison. Stamina costs and stagger are
+not included in the damage cells.
+
 The original Gareth-versus-Brute duel plus a formation scenario with Gareth,
 Elira, a Brute and two Skirmishers. Autonomous physical attacks, reactive defenses, Health,
 Stamina and Mana storage, preparation/execution/recovery, Quality, physical
@@ -33,13 +65,34 @@ collections of those entities in code. A combatant is a character participating
 in an encounter; encounter configuration and combat reports retain `combatants`.
 
 This is not yet the full v0.1 party. The formation scenario implements band
-access, Engagement Capacity, breakthrough, disengagement and Opportunity Attacks.
+access, Engagement Capacity, breakthrough, withdrawal, retreat and Opportunity Attacks.
 Elira uses a physical ranged attack from Midline. Spellcasting, support,
-interruptions, general temporary effects and encounter retreat are future stages.
+interruptions and general temporary effects are future stages.
 Her support abilities are not implemented. Pressured and Isolated
 are not yet modeled. Protected/Exposed indicate access and grant no Quality bonus.
 The action interruptible field is metadata until interruption is implemented.
-Unsupported effects and usage conditions are rejected rather than silently applied.
+Unsupported effects and unknown usage conditions are rejected rather than silently applied.
+
+## Action availability while Exposed
+
+An action can opt into this shared condition:
+
+```json
+"usage_conditions": {"prevent_when_exposed": true}
+```
+
+It prevents starting the action when any active enemy has direct melee access
+to its user. It is checked again at Execution: if the user became Exposed during
+Preparation, the action is cancelled with no refund and normal Recovery. Exposure
+does not itself interrupt Preparation early. Rejection and cancellation reasons
+appear in the logs. Omitting the flag or setting it to false leaves the action
+available. The check is independent of range, resource and damage type, so future
+magical actions can use the same condition without a separate rule.
+
+`ranged_attack` currently enables this condition. Engagement is not itself the
+condition; direct melee access is. A character can be Exposed without being
+assigned to a controller. The user's live action weights and formation remain
+editable; historical scenario names and results below describe earlier experiments.
 
 ## Replaceable configuration
 
@@ -93,8 +146,8 @@ The engine and default duel support Block, Dodge, Parry and Brace.
 Controlled tests also exercise all defenses independently of encounter balance.
 Attributes live on each Character definition, not on the defense. Templates
 reference those attributes with editable weights: Dodge uses Gross Coordination
-40%, Balance 35%, Reflexes 25%; Parry uses Grip & Control 50%, Gross Coordination
-30%, Reflexes 20%. Both use the character's corresponding defense skill.
+40%, Balance 35%, Reflexes 25%; Parry currently uses Grip & Control 35%, Gross
+Coordination 30%, Reflexes 35%. Both use the character's corresponding defense skill.
 Balance and Reflexes currently match each fixture's Gross Coordination as
 provisional starting values. All these values can be replaced in encounter JSON.
 The sword is parryable and the Brute's heavy attack is difficult to parry.
@@ -138,11 +191,13 @@ directly melee a penetrator that has moved beyond it. Access is checked both whe
 choosing an attack and when executing it; invalidated attacks still consume their
 already-paid preparation cost and normal recovery.
 
-Ranged physical attacks can target any active enemy across all bands, including
-while the attacker is engaged. They use the same damage and physical-protection
+Ranged physical attacks have target access across all bands; the enabled
+`prevent_when_exposed` condition restricts whether the user can perform them.
+They use the same damage and physical-protection
 rules as melee attacks. Elira's Ranged Attack uses Base Power 27, Stamina cost (3),
-preparation (0.5s), recovery (0.7s) and the same attribute weights as Sword Attack;
-it reads a separate `ranged` skill, initially 50. Ranged access does not change
+preparation (0.5s), recovery (0.7s). The current ranged weights are Fine Motor
+Control 35%, Spatial Awareness 30%, Grip & Control 20%, Perception 15%; it reads
+the character's `ranged` skill. Ranged access does not change
 melee engagements or the Protected/Exposed states. Ranged Opportunity Attacks
 are not supported. Damage types beyond physical remain unimplemented.
 
@@ -153,7 +208,7 @@ slots. Each mover has at most one assigned controller. Incapacitation or movemen
 out of reach releases control immediately. In this isolated fixture Gareth is
 the controller; the three enemies and Elira have zero capacity.
 
-An engaged character must Disengage to leave; ordinary movement cannot bypass
+An engaged character must Withdraw to leave; ordinary forward movement cannot bypass
 that rule. An extra enemy beyond capacity may Breakthrough. Both use the same
 movement-versus-Control Quality contest. A mover advantage of at least 5 is clean
 success; a controller advantage of at least 5 is failure; between them is partial
@@ -185,6 +240,10 @@ after his engagements end. This is reported rather than treated as Victory or De
 
 ## Current damage experiment
 
+The results below are historical tuning experiments; the live configuration has
+since changed. The current formation has Gareth, Talen, a Brute and three
+Skirmishers, with retreat enabled.
+
 Physical Base Power was increased by 50%: Sword Attack and Ranged Attack 18 -> 27,
 Heavy Attack 34 -> 51, Quick Attack 12 -> 18. Health, protection, timings, costs
 and AI settings are unchanged. Block's cost still scales with prevented damage.
@@ -192,6 +251,64 @@ The duel now ends in Victory at 11.3s (previously 17.3s). In the formation test,
 the Brute and first Skirmisher are incapacitated, with Elira surviving at 2.82 HP.
 Prior run logs and the previous action configuration are saved locally under
 `output/before-damage-increase/` for comparison.
+
+## Configurable retreat and Withdraw
+
+Both encounter JSON files now include:
+
+```json
+"retreat": {
+  "enabled": true,
+  "health_threshold": 0.30,
+  "useful_resource_threshold": 0.20,
+  "trigger_mode": "either",
+  "allow_exhausted_withdrawal": true
+}
+```
+
+Fractions use the original party's combined maximum values as fixed denominators.
+Current HP at or below 30%, or useful resources at or below 20%, triggers retreat.
+Use `"both"` to require both configured thresholds, `null` to disable an individual
+threshold, or `"enabled": false` to disable automatic retreat. An absent retreat
+section also disables it. Checks occur at combat start and after phase resolution
+and action selection, including resource expenditure. Retreat stays active once
+triggered, even if later resource or Health totals increase.
+
+Useful resources sum Stamina/Mana only for each character who has a positive-cost
+action or defense that consumes that resource. Unused Mana is excluded; Stamina
+used by Block or other defenses is included. Each point has equal weight.
+Incapacitated characters contribute zero to current HP and useful resources, but
+their initial maximums remain in the denominators. An empty useful-resource pool
+does not trigger retreat by itself. Escaped survivors retain their recorded values;
+the retreat decision is already latched and is never reversed or reevaluated.
+
+Withdraw replaces the separate Disengage action. It moves one band back along
+the existing path, then escapes on a further successful withdrawal from the
+character's own Backline. Leaving hostile control uses the same movement-versus-
+Control contest as breakthrough, including partial success Opportunity Attacks.
+No hostile control means no contest. Escaping requires preparation but ends
+participation immediately on execution; no post-escape recovery, action, defense,
+targeting or engagement occurs. An Opportunity Attack that incapacitates the
+withdrawer prevents both movement and escape.
+
+The AI selects Withdraw only while retreating, and prioritizes it over attacks.
+Already-started preparation and recovery finish normally before the next choice.
+Currently only the party has automatic retreat policy; enemies can use that
+same policy when selected as the first character in a duel. All configured
+characters have Withdraw available for that purpose. No rescue/carrying system
+is modeled: all non-incapacitated surviving party members must escape for
+Successful Retreat; if all party members are incapacitated, the result is Defeat.
+
+Cost, preparation, recovery and attribute weights stay in the `withdraw` action
+in `config/actions.json`. With `allow_exhausted_withdrawal` enabled, a retreating
+character pays whatever remains up to the action's normal cost, even zero.
+When false, an unaffordable withdrawal is unavailable. Failure still consumes
+the paid cost and normal recovery. Withdraw can fail repeatedly if opposing
+Control Quality consistently wins; retreat is not guaranteed.
+
+The initial run with these defaults triggers retreat at 9.4s with 19.1% useful
+resources left. Talen escapes at 10.1s and Gareth at 12.1s. The detailed transcript
+and report are in `output/retreat/`.
 
 ## Reading the result
 

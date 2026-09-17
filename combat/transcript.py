@@ -75,13 +75,6 @@ def render_transcript(events, report, definitions, actions, *, verbose=False):
                    f" -> {number(after_defense)} after {defense_label if defense != 'none' else 'active defense'}"
                    f" -> {number(event['final_damage'])} after armor")
             detail(f"{name(target)} Health: {number(event['health_before'])} -> {number(event['health_after'])}")
-            if defense in {"dodge", "parry"}:
-                if event["outcome"] in {"Strong Defense", "Defense"}:
-                    detail(f"{defense_label} avoids all damage.")
-                elif event["outcome"] == "Contested":
-                    detail(f"{defense_label}: partial contact.")
-                else:
-                    detail(f"{defense_label} fails; full raw damage reaches armor.")
             if event["final_damage"] > event["health_lost"] + 1e-9:
                 detail(f"Health lost: {number(event['health_lost'])}; remaining damage is overkill.")
             choice = defenses.pop(target, None)
@@ -156,6 +149,18 @@ def render_transcript(events, report, definitions, actions, *, verbose=False):
             heading(event, f"{name(actor)}'s action is cancelled: {event['reason']}.")
         elif kind == "encounter_complete":
             heading(event, f"{event['result'].upper()} — {event['reason']}.")
+        elif kind == "retreat_triggered":
+            heading(event, "PARTY RETREAT TRIGGERED")
+            resource = event["useful_resource_fraction"]
+            detail(f"Party Health: {event['health_fraction']:.1%}; useful resources: "
+                   + (f"{resource:.1%}." if resource is not None else "not applicable."))
+            detail(f"Mode: {event['trigger_mode']}; met thresholds: "
+                   + ", ".join(f"{key.replace('_', ' ')} {event['thresholds'][key]:.0%}"
+                               for key, met in event["checks"].items() if met) + ".")
+            detail("Party members will Withdraw after their current action and recovery.")
+        elif kind == "escaped":
+            heading(event, f"{name(actor)} ESCAPES — {event['outcome'].upper()}.")
+            detail("Removed from combat.")
         elif verbose and kind == "decision":
             heading(event, f"{name(actor)} chooses {action_name(event['selected']['action'])} "
                     f"-> {name(event['selected']['target'])}")
@@ -177,10 +182,11 @@ def render_transcript(events, report, definitions, actions, *, verbose=False):
             heading(event, f"{name(actor)} finishes recovery.")
 
     lines.extend(["", f"RESULT: {report['result']} at {report['duration_seconds']:.1f}s", ""])
-    rows = [["Combatant", "Health left", "Stamina left", "Mana left", "HP lost", "Stamina spent"]]
+    rows = [["Combatant", "Status", "Health left", "Stamina left", "Mana left", "HP lost", "Stamina spent"]]
     for character in report["combatants"]:
         initial = characters[character["id"]]
-        rows.append([character["name"],
+        status = "Escaped" if character.get("escaped") else "Incapacitated" if character["incapacitated"] else "Retreating" if character.get("retreating") else "Active"
+        rows.append([character["name"], status,
                      *[f"{number(character[r])} / {number(initial[f'maximum_{r}'])}" for r in ("health", "stamina", "mana")],
                      number(character["health_lost"]), number(character["stamina_spent"])])
     widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]

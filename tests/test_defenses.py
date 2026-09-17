@@ -1,5 +1,6 @@
 """Controlled fixtures isolate defense rules from encounter balance."""
 
+from scenarios import duel_fixture
 from pathlib import Path
 import unittest
 
@@ -12,18 +13,18 @@ CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 class DefenseTests(unittest.TestCase):
     def test_configured_weights_read_character_attributes(self):
-        sim = load_simulation(CONFIG)
+        sim = duel_fixture()
         character = sim.characters["gareth"]
         dodge = quality(character, sim.actions["dodge"], sim.balance)
         parry = quality(character, sim.actions["parry"], sim.balance)
         self.assertAlmostEqual(dodge["capability"], 55)
-        self.assertAlmostEqual(parry["capability"], 62.5)
+        self.assertAlmostEqual(parry["capability"], 60.25)
         character.definition["attributes"]["reflexes"] += 20
         self.assertAlmostEqual(quality(character, sim.actions["dodge"], sim.balance)["total"] - dodge["total"], 5)
-        self.assertAlmostEqual(quality(character, sim.actions["parry"], sim.balance)["total"] - parry["total"], 4)
+        self.assertAlmostEqual(quality(character, sim.actions["parry"], sim.balance)["total"] - parry["total"], 7)
 
     def test_full_defense_encounter_is_repeatable(self):
-        first, second = load_simulation(CONFIG), load_simulation(CONFIG)
+        first, second = duel_fixture(), duel_fixture()
         self.assertEqual(first.run(), second.run())
         self.assertEqual(first.events, second.events)
         decisions = [e for e in first.events if e["event"] == "defense_decision"]
@@ -33,7 +34,7 @@ class DefenseTests(unittest.TestCase):
             self.assertEqual(decision["defense"], decision["candidates"][0]["defense"])
 
     def setUp(self):
-        self.sim = load_simulation(CONFIG)
+        self.sim = duel_fixture()
         self.attacker = self.sim.characters["brute"]
         self.defender = self.sim.characters["gareth"]
         self.attack = self.sim.actions["heavy_attack"]
@@ -149,7 +150,8 @@ class DefenseTests(unittest.TestCase):
                     self.assertIn("Brace: no Quality contest", text)
                     self.assertIn("spent 0", text)
                 else:
-                    self.assertIn("avoids all damage", text)
+                    self.assertIn(f"{defense.title()} prevents ", text)
+                    self.assertNotIn("avoids all damage", text)
                     self.assertNotIn("Brute hits Gareth", text)
                 if defense == "parry":
                     self.assertIn("Recovery extended by 0.3s", text)

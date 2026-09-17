@@ -15,12 +15,16 @@
       "magical_protection": 15,
       "engagement_capacity": 2,
       "attributes": {
-        "maximum_force": 60,
-        "grip_control": 70,
-        "gross_coordination": 55,
-        "balance": 55,
-        "reflexes": 55,
-        "situational_awareness": 55
+        "maximum_force": 82,
+        "explosive_power": 68,
+        "grip_control": 86,
+        "reflexes": 58,
+        "fine_motor_control": 48,
+        "gross_coordination": 65,
+        "balance": 80,
+        "spatial_awareness": 60,
+        "perception": 58,
+        "situational_awareness": 75
       },
       "skills": {
         "melee": 60,
@@ -32,7 +36,7 @@
       },
       "actions": [
         "sword_attack",
-        "disengage"
+        "withdraw"
       ],
       "defenses": [
         "block",
@@ -54,34 +58,41 @@
       "control_priority": 10
     },
     {
-      "id": "elira",
-      "name": "Elira",
+      "id": "talen",
+      "name": "Talen",
       "team": "party",
-      "band": "Midline",
-      "maximum_health": 100,
-      "maximum_stamina": 80,
-      "maximum_mana": 50,
-      "physical_protection": 20,
+      "band": "Backline",
+      "maximum_health": 105,
+      "maximum_stamina": 90,
+      "maximum_mana": 0,
+      "physical_protection": 25,
       "magical_protection": 15,
       "engagement_capacity": 0,
       "attributes": {
-        "maximum_force": 55,
-        "grip_control": 60,
-        "gross_coordination": 65,
-        "balance": 55,
-        "reflexes": 55,
-        "situational_awareness": 60
+        "maximum_force": 58,
+        "explosive_power": 62,
+        "grip_control": 68,
+        "reflexes": 78,
+        "fine_motor_control": 88,
+        "gross_coordination": 76,
+        "balance": 72,
+        "spatial_awareness": 84,
+        "perception": 80,
+        "situational_awareness": 70
       },
       "skills": {
-        "block": 40,
-        "dodge": 50,
-        "parry": 50,
-        "control": 50,
-        "movement": 50,
-        "ranged": 65
+        "melee": 60,
+        "ranged": 82,
+        "block": 25,
+        "dodge": 76,
+        "parry": 45,
+        "control": 40,
+        "movement": 72
       },
       "actions": [
-        "ranged_attack"
+        "ranged_attack",
+        "knife_attack",
+        "withdraw"
       ],
       "defenses": [
         "block",
@@ -90,12 +101,14 @@
         "brace"
       ],
       "tactics": {
-        "defense_preferences": {},
+        "defense_preferences": {
+          "dodge": 10
+        },
         "action_bonuses": {},
         "target_preferences": {},
-        "resource_penalty_per_point": 0.2,
+        "resource_penalty_per_point": 0.15,
         "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 20
+        "penetrating_target_bonus": 25
       },
       "control_priority": 0
     },
@@ -111,23 +124,28 @@
       "magical_protection": 5,
       "engagement_capacity": 0,
       "attributes": {
-        "maximum_force": 75,
-        "grip_control": 35,
-        "gross_coordination": 35,
-        "balance": 35,
-        "reflexes": 35,
-        "situational_awareness": 35
+        "maximum_force": 88,
+        "explosive_power": 78,
+        "grip_control": 60,
+        "reflexes": 38,
+        "fine_motor_control": 30,
+        "gross_coordination": 42,
+        "balance": 48,
+        "spatial_awareness": 40,
+        "perception": 42,
+        "situational_awareness": 38
       },
       "skills": {
-        "melee": 40,
-        "block": 15,
+        "melee": 60,
+        "block": 20,
         "dodge": 25,
-        "parry": 40,
-        "control": 40,
-        "movement": 50
+        "parry": 30,
+        "control": 45,
+        "movement": 42
       },
       "actions": [
-        "heavy_attack"
+        "heavy_attack",
+        "withdraw"
       ],
       "defenses": [
         "block",
@@ -137,6 +155,7 @@
       ],
       "tactics": {
         "defense_preferences": {
+          "brace": 8,
           "block": 0
         },
         "action_bonuses": {},
@@ -160,25 +179,29 @@
       "magical_protection": 5,
       "engagement_capacity": 0,
       "attributes": {
-        "maximum_force": 45,
-        "grip_control": 55,
-        "gross_coordination": 64,
-        "balance": 64,
-        "reflexes": 64,
-        "situational_awareness": 50
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
       },
       "skills": {
-        "melee": 60,
+        "melee": 80,
         "block": 35,
-        "dodge": 60,
-        "parry": 55,
-        "control": 50,
-        "movement": 60
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
       },
       "actions": [
         "quick_attack",
         "breakthrough",
-        "disengage"
+        "withdraw"
       ],
       "defenses": [
         "block",
@@ -188,6 +211,8 @@
       ],
       "tactics": {
         "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
           "block": 0
         },
         "action_bonuses": {},
@@ -211,25 +236,29 @@
       "magical_protection": 5,
       "engagement_capacity": 0,
       "attributes": {
-        "maximum_force": 45,
-        "grip_control": 55,
-        "gross_coordination": 64,
-        "balance": 64,
-        "reflexes": 64,
-        "situational_awareness": 50
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
       },
       "skills": {
-        "melee": 60,
+        "melee": 80,
         "block": 35,
-        "dodge": 60,
-        "parry": 55,
-        "control": 50,
-        "movement": 60
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
       },
       "actions": [
         "quick_attack",
         "breakthrough",
-        "disengage"
+        "withdraw"
       ],
       "defenses": [
         "block",
@@ -239,6 +268,65 @@
       ],
       "tactics": {
         "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 8
+    },
+    {
+      "id": "skirmisher_3",
+      "name": "Skirmisher 3",
+      "team": "enemy",
+      "band": "Frontline",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
+      },
+      "skills": {
+        "melee": 80,
+        "block": 35,
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
           "block": 0
         },
         "action_bonuses": {},
@@ -250,5 +338,12 @@
       "opportunity_attack": "quick_attack",
       "engagement_priority": 8
     }
-  ]
+  ],
+  "retreat": {
+    "enabled": true,
+    "health_threshold": 0.3,
+    "useful_resource_threshold": 0.2,
+    "trigger_mode": "either",
+    "allow_exhausted_withdrawal": true
+  }
 }

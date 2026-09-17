@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,11 +14,24 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Deterministic combat foundation")
     parser.add_argument("--config", type=Path, default=Path(__file__).resolve().parent.parent / "config")
-    parser.add_argument("--output", type=Path, default=Path("output"))
+    parser.add_argument("--output", type=Path, help="Output directory; duels default to a folder per matchup and position mode")
     parser.add_argument("--encounter", type=Path, help="Encounter JSON override, e.g. config/formation.json")
+    parser.add_argument("--duel", nargs=2, metavar=("FIRST", "SECOND"), help="Select two character IDs; first character is the party")
+    parser.add_argument("--positions", choices=("frontline", "base"), help="Duel starting bands (default: frontline)")
     parser.add_argument("--verbose", action="store_true", help="Include AI scores, calculations and recovery events")
     args = parser.parse_args()
-    simulation = load_simulation(args.config, args.encounter)
+    if args.positions and not args.duel:
+        parser.error("--positions requires --duel")
+    positions = args.positions or "frontline"
+    try:
+        simulation = load_simulation(args.config, args.encounter, duel=args.duel, positions=positions)
+    except (ValueError, KeyError, OSError) as error:
+        parser.error(str(error))
+    if args.output is None:
+        args.output = Path("output")
+        if args.duel:
+            names = [re.sub(r"[^a-zA-Z0-9_-]", "_", key) for key in args.duel]
+            args.output = args.output / "duels" / f"{names[0]}-vs-{names[1]}" / positions
     report = simulation.run()
     args.output.mkdir(parents=True, exist_ok=True)
     events = "\n".join(json.dumps(event, ensure_ascii=False, sort_keys=True) for event in simulation.events) + "\n"

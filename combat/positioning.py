@@ -5,14 +5,14 @@ BANDS = ("Frontline", "Midline", "Backline")
 
 def attack_access(actor, target, action):
     if action["range_requirement"] == "ranged":
-        return (not actor.incapacitated and not target.incapacitated
+        return (not actor.incapacitated and not target.incapacitated and not actor.escaped and not target.escaped
                 and actor.definition["team"] != target.definition["team"])
     return can_access(actor, target)
 
 
 def can_access(actor, target):
     """Melee access determines engagements and Protected/Exposed, even for archers."""
-    if actor.incapacitated or target.incapacitated or actor.definition["team"] == target.definition["team"]:
+    if actor.incapacitated or target.incapacitated or actor.escaped or target.escaped or actor.definition["team"] == target.definition["team"]:
         return False
     if actor.reached != "Frontline":
         return target.reached == "Frontline" and target.band == actor.reached
@@ -23,9 +23,26 @@ def can_access(actor, target):
 
 def controllers(sim, mover):
     return sorted((c for c in sim.active() if c.definition["team"] != mover.definition["team"]
+                   and not c.retreating
                    and c.reached == "Frontline" and c.definition["engagement_capacity"] > 0
                    and can_access(c, mover)),
                   key=lambda c: (-c.definition.get("control_priority", 0), c.id))
+
+
+def melee_pressurers(sim, mover):
+    """Active melee attackers can oppose their target's Withdraw without control capacity."""
+    pressurers = []
+    for enemy in sim.active():
+        action = sim.actions.get(enemy.action)
+        if (enemy.definition["team"] != mover.definition["team"]
+                and enemy.target == mover.id
+                and enemy.phase in {"Preparing", "Executing", "Recovering"}
+                and action is not None
+                and action["category"].endswith("_attack")
+                and action["range_requirement"] in {"duel", "melee"}
+                and can_access(enemy, mover)):
+            pressurers.append(enemy)
+    return sorted(pressurers, key=lambda c: (-c.definition.get("control_priority", 0), c.id))
 
 
 def refresh(sim):
@@ -61,7 +78,7 @@ def refresh(sim):
                 capacity=sim.characters[controller].definition["engagement_capacity"],
                 reason="automatic control within capacity")
     for character in sorted(sim.characters.values(), key=lambda c: c.id):
-        states = set() if character.incapacitated else {
+        states = set() if character.incapacitated or character.escaped else {
             "Exposed" if any(can_access(enemy, character) for enemy in sim.active()) else "Protected"}
         if states != character.positional_states:
             character.positional_states = states
@@ -87,14 +104,14 @@ def destination(character, direction):
 def movement_reason(sim, actor, action):
     if not sim.positioning:
         return "positioning disabled in this encounter"
-    if destination(actor, action["direction"]) is None:
+    if actor.incapacitated or actor.escaped:
+        return "character is no longer active"
+    if destination(actor, action["direction"]) is None and action["direction"] != "withdraw":
         return "already at outermost band"
     if action["movement_kind"] == "breakthrough" and actor.controlled_by:
-        return "actively engaged; disengage before bypassing control"
-    if action["movement_kind"] == "move" and (actor.controlled_by or actor.engagements):
-        return "actively engaged; use Disengage to leave"
-    if action["movement_kind"] == "disengage" and not (actor.controlled_by or actor.engagements):
-        return "no active engagement to leave"
+        return "actively engaged; Withdraw before bypassing control"
+    if action["direction"] != "withdraw" and action["movement_kind"] == "move" and (actor.controlled_by or actor.engagements):
+        return "actively engaged; use Withdraw to leave"
     if action["movement_kind"] == "breakthrough":
         next_band = destination(actor, action["direction"])[1]
         if actor.band == "Frontline" and not any(
@@ -117,9 +134,10 @@ def execute_movement(sim, actor, action_key):
     # Leaving an active engagement uses the same contest, including when the
     # character was the controller. Crossing uncontrolled space needs no roll.
     opposed = {c.id: c for c in controllers(sim, actor)}
-    if action["movement_kind"] == "disengage":
+    if action["direction"] == "withdraw":
         opposed.update({key: sim.characters[key] for key in actor.engagements | actor.controlled_by
-                        if not sim.characters[key].incapacitated})
+                        if not sim.characters[key].incapacitated and not sim.characters[key].escaped})
+        opposed.update({c.id: c for c in melee_pressurers(sim, actor)})
     mover_quality = quality(actor, action, sim.balance)
     partial = []
     failed = False
@@ -142,6 +160,12 @@ def execute_movement(sim, actor, action_key):
         if actor.incapacitated:
             sim.log("movement_failed", actor.id, action=action_key, reason="incapacitated by Opportunity Attack")
             return
+    if after is None:  # Successful withdrawal from own Backline is an escape.
+        actor.escaped = True
+        actor.phase, actor.action, actor.target, actor.phase_end_tick = "Idle", None, None, 0
+        sim.log("escaped", actor.id, outcome="Partial Success" if partial else "Clean Success" if opposed else "Unopposed")
+        refresh(sim)
+        return
     actor.band, actor.reached = after
     sim.log("movement", actor.id, action=action_key, from_band=before[0], from_reached=before[1],
             band=actor.band, reached=actor.reached,

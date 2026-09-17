@@ -4,13 +4,14 @@ import unittest
 from combat.engine import load_simulation, quality
 from combat import positioning
 from combat.transcript import render_transcript
+from scenarios import formation_fixture
 
 
 CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 
 def formation():
-    return load_simulation(CONFIG, CONFIG / "formation.json")
+    return formation_fixture()
 
 
 class PositioningTests(unittest.TestCase):
@@ -40,7 +41,7 @@ class PositioningTests(unittest.TestCase):
         self.assertFalse(positioning.can_access(self.mover, self.elira))
         self.assertIsNone(positioning.movement_reason(self.sim, self.mover, self.sim.actions["breakthrough"]))
         engaged = self.sim.characters["skirmisher_1"]
-        self.assertIn("disengage", positioning.movement_reason(self.sim, engaged, self.sim.actions["breakthrough"]))
+        self.assertIn("Withdraw", positioning.movement_reason(self.sim, engaged, self.sim.actions["breakthrough"]))
 
     def test_elira_attacks_from_protected_midline(self):
         self.sim.decide(self.elira)
@@ -63,6 +64,7 @@ class PositioningTests(unittest.TestCase):
         self.assertFalse(positioning.attack_access(self.elira, self.mover, action))
 
     def test_ranged_attack_remains_usable_while_engaged(self):
+        self.sim.actions["ranged_attack"]["usage_conditions"]["prevent_when_exposed"] = False
         self.mover.reached = "Midline"
         self.elira.definition["engagement_capacity"] = 1
         positioning.refresh(self.sim)
@@ -154,21 +156,45 @@ class PositioningTests(unittest.TestCase):
         self.assertEqual((self.gareth.phase, self.gareth.phase_end_tick), ("Recovering", 20))
         self.assertTrue(any(e["event"] == "stagger_ignored" for e in self.sim.events))
 
-    def test_disengagement_uses_same_contest_and_releases_control(self):
+    def test_withdrawal_uses_same_contest_and_releases_control(self):
         for margin, expected in [(-5, "Failure"), (0, "Partial Success"), (5, "Clean Success")]:
             with self.subTest(margin=margin):
                 self.setUp()
                 mover = self.sim.characters["skirmisher_1"]
                 self.set_margin(margin, mover)
-                self.execute_move(mover, "disengage")
+                self.execute_move(mover, "withdraw")
                 event = next(e for e in self.sim.events if e["event"] == "movement_contest")
                 self.assertEqual(event["outcome"], expected)
                 self.assertEqual(mover.band, "Frontline" if expected == "Failure" else "Midline")
                 self.assertEqual(bool(mover.controlled_by), expected == "Failure")
 
+    def test_active_melee_attacker_opposes_withdraw_without_engagement_capacity(self):
+        self.gareth.definition["engagement_capacity"] = 0
+        positioning.refresh(self.sim)
+        self.assertFalse(self.mover.controlled_by)
+        self.gareth.phase, self.gareth.action, self.gareth.target = "Preparing", "sword_attack", self.mover.id
+        self.execute_move(self.mover, "withdraw")
+        contests = [event for event in self.sim.events if event["event"] == "movement_contest"]
+        self.assertEqual([event["target"] for event in contests], [self.gareth.id])
+
+    def test_idle_zero_capacity_enemy_does_not_oppose_withdraw(self):
+        self.gareth.definition["engagement_capacity"] = 0
+        positioning.refresh(self.sim)
+        self.execute_move(self.mover, "withdraw")
+        self.assertFalse(any(event["event"] == "movement_contest" for event in self.sim.events))
+        movement = next(event for event in self.sim.events if event["event"] == "movement")
+        self.assertEqual(movement["outcome"], "Unopposed")
+
+    def test_ranged_attacker_does_not_create_melee_withdraw_pressure(self):
+        self.gareth.definition["engagement_capacity"] = 0
+        positioning.refresh(self.sim)
+        self.elira.phase, self.elira.action, self.elira.target = "Preparing", "ranged_attack", self.mover.id
+        self.execute_move(self.mover, "withdraw")
+        self.assertFalse(any(event["event"] == "movement_contest" for event in self.sim.events))
+
     def test_plain_move_cannot_bypass_engagement(self):
         engaged = self.sim.characters["skirmisher_1"]
-        self.assertIn("Disengage", positioning.movement_reason(self.sim, engaged, self.sim.actions["advance"]))
+        self.assertIn("Withdraw", positioning.movement_reason(self.sim, engaged, self.sim.actions["advance"]))
 
     def test_incapacitated_controller_loses_capacity(self):
         self.gareth.health, self.gareth.incapacitated = 0, True
@@ -210,6 +236,15 @@ class PositioningTests(unittest.TestCase):
         positioning.refresh(self.sim)
         self.assertEqual(self.elira.engagements, {"brute"})
         self.assertEqual(self.gareth.engagements, {"skirmisher_1", "skirmisher_2"})
+
+    def test_retreating_character_stops_controlling_but_can_be_controlled(self):
+        brute = self.sim.characters["brute"]
+        self.gareth.retreating = True
+        brute.definition["engagement_capacity"] = 1
+        positioning.refresh(self.sim)
+        self.assertEqual(self.gareth.engagements, set())
+        self.assertEqual(self.gareth.controlled_by, {brute.id})
+        self.assertEqual(brute.engagements, {self.gareth.id})
 
     def test_movement_preparation_pays_cost_and_takes_time(self):
         sim = formation()

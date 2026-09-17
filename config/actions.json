@@ -66,9 +66,9 @@
     },
     "skill": "dodge",
     "outcome_reductions": {
-      "Strong Defense": 1,
-      "Defense": 1,
-      "Contested": 0.5,
+      "Strong Defense": 0.9,
+      "Defense": 0.65,
+      "Contested": 0.3,
       "Hit": 0,
       "Strong Hit": 0
     }
@@ -78,17 +78,17 @@
     "category": "defense",
     "stamina_cost": 3,
     "attribute_weights": {
-      "grip_control": 0.5,
-      "gross_coordination": 0.3,
-      "reflexes": 0.2
+      "reflexes": 0.35,
+      "grip_control": 0.35,
+      "gross_coordination": 0.3
     },
     "skill": "parry",
     "difficult_quality_penalty": -10,
     "stagger_seconds": 0.3,
     "outcome_reductions": {
-      "Strong Defense": 1,
-      "Defense": 1,
-      "Contested": 0.5,
+      "Strong Defense": 0.85,
+      "Defense": 0.7,
+      "Contested": 0.35,
       "Hit": 0,
       "Strong Hit": 0
     }
@@ -103,8 +103,9 @@
     "name": "Block",
     "category": "defense",
     "attribute_weights": {
-      "grip_control": 0.6,
-      "maximum_force": 0.4
+      "grip_control": 0.4,
+      "maximum_force": 0.35,
+      "balance": 0.25
     },
     "skill": "block"
   },
@@ -131,30 +132,6 @@
     "base_usefulness": 30,
     "direction": "advance",
     "movement_kind": "breakthrough"
-  },
-  "disengage": {
-    "name": "Disengage",
-    "category": "movement",
-    "target_type": "self",
-    "resource_type": "stamina",
-    "resource_cost": 3,
-    "preparation_seconds": 0.5,
-    "recovery_seconds": 0.5,
-    "base_power": 0,
-    "attribute_weights": {
-      "gross_coordination": 0.4,
-      "balance": 0.35,
-      "reflexes": 0.25
-    },
-    "skill": "movement",
-    "range_requirement": "one_band",
-    "interruptible": true,
-    "allowed_defenses": [],
-    "effects": [],
-    "usage_conditions": {},
-    "base_usefulness": 10,
-    "direction": "withdraw",
-    "movement_kind": "disengage"
   },
   "advance": {
     "name": "Advance",
@@ -202,7 +179,7 @@
     "usage_conditions": {},
     "base_usefulness": 10,
     "direction": "withdraw",
-    "movement_kind": "move"
+    "movement_kind": "withdraw"
   },
   "quick_attack": {
     "name": "Quick Attack",
@@ -242,9 +219,10 @@
     "recovery_seconds": 0.7,
     "base_power": 27,
     "attribute_weights": {
-      "maximum_force": 0.4,
-      "grip_control": 0.3,
-      "gross_coordination": 0.3
+      "fine_motor_control": 0.35,
+      "spatial_awareness": 0.3,
+      "grip_control": 0.2,
+      "perception": 0.15
     },
     "skill": "ranged",
     "range_requirement": "ranged",
@@ -256,7 +234,38 @@
     ],
     "parryability": "not_parryable",
     "effects": [],
-    "usage_conditions": {},
+    "usage_conditions": {
+      "prevent_when_exposed": true
+    },
     "base_usefulness": 20
+  },
+  "knife_attack": {
+    "name": "Knife Attack",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 2,
+    "preparation_seconds": 0.3,
+    "recovery_seconds": 0.5,
+    "base_power": 18,
+    "attribute_weights": {
+      "grip_control": 0.3,
+      "gross_coordination": 0.35,
+      "reflexes": 0.35
+    },
+    "skill": "melee",
+    "range_requirement": "melee",
+    "can_melee": true,
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "parry",
+      "brace"
+    ],
+    "parryability": "parryable",
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 16
   }
 }
