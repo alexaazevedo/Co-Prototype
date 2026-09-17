@@ -1,0 +1,49 @@
+{
+  "tick_seconds": 0.1,
+  "max_duration_seconds": 120,
+  "skill_baseline": 50,
+  "skill_scale": 0.4,
+  "capability_baseline": 50,
+  "protection_k": 100,
+  "block_stamina_per_prevented_damage": 0.15,
+  "outcomes": [
+    {
+      "name": "Strong Defense",
+      "minimum_defender_margin": 15,
+      "block_reduction": 0.65
+    },
+    {
+      "name": "Defense",
+      "minimum_defender_margin": 5,
+      "block_reduction": 0.55
+    },
+    {
+      "name": "Contested",
+      "minimum_defender_margin": -5,
+      "exclusive": true,
+      "block_reduction": 0.4
+    },
+    {
+      "name": "Hit",
+      "minimum_defender_margin": -15,
+      "exclusive": true,
+      "block_reduction": 0.2
+    },
+    {
+      "name": "Strong Hit",
+      "minimum_defender_margin": null,
+      "block_reduction": 0.0
+    }
+  ],
+  "unopposed_outcome": "Hit",
+  "movement_clear_margin": 5,
+  "control_quality": {
+    "attribute_weights": {
+      "grip_control": 0.35,
+      "balance": 0.25,
+      "maximum_force": 0.2,
+      "situational_awareness": 0.2
+    },
+    "skill": "control"
+  }
+}

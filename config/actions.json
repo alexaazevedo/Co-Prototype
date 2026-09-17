@@ -1,0 +1,262 @@
+{
+  "sword_attack": {
+    "name": "Sword Attack",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.7,
+    "base_power": 27,
+    "attribute_weights": {
+      "maximum_force": 0.4,
+      "grip_control": 0.3,
+      "gross_coordination": 0.3
+    },
+    "skill": "melee",
+    "range_requirement": "melee",
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "parry",
+      "brace"
+    ],
+    "parryability": "parryable",
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 20
+  },
+  "heavy_attack": {
+    "name": "Heavy Attack",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 6,
+    "preparation_seconds": 1.2,
+    "recovery_seconds": 1.0,
+    "base_power": 51,
+    "attribute_weights": {
+      "maximum_force": 0.4,
+      "grip_control": 0.3,
+      "gross_coordination": 0.3
+    },
+    "skill": "melee",
+    "range_requirement": "melee",
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "parry",
+      "brace"
+    ],
+    "parryability": "difficult",
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 20
+  },
+  "dodge": {
+    "name": "Dodge",
+    "category": "defense",
+    "stamina_cost": 5,
+    "attribute_weights": {
+      "gross_coordination": 0.4,
+      "balance": 0.35,
+      "reflexes": 0.25
+    },
+    "skill": "dodge",
+    "outcome_reductions": {
+      "Strong Defense": 1,
+      "Defense": 1,
+      "Contested": 0.5,
+      "Hit": 0,
+      "Strong Hit": 0
+    }
+  },
+  "parry": {
+    "name": "Parry",
+    "category": "defense",
+    "stamina_cost": 3,
+    "attribute_weights": {
+      "grip_control": 0.5,
+      "gross_coordination": 0.3,
+      "reflexes": 0.2
+    },
+    "skill": "parry",
+    "difficult_quality_penalty": -10,
+    "stagger_seconds": 0.3,
+    "outcome_reductions": {
+      "Strong Defense": 1,
+      "Defense": 1,
+      "Contested": 0.5,
+      "Hit": 0,
+      "Strong Hit": 0
+    }
+  },
+  "brace": {
+    "name": "Brace",
+    "category": "defense",
+    "stamina_cost": 0,
+    "damage_reduction": 0.2
+  },
+  "block": {
+    "name": "Block",
+    "category": "defense",
+    "attribute_weights": {
+      "grip_control": 0.6,
+      "maximum_force": 0.4
+    },
+    "skill": "block"
+  },
+  "breakthrough": {
+    "name": "Breakthrough",
+    "category": "movement",
+    "target_type": "self",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.5,
+    "base_power": 0,
+    "attribute_weights": {
+      "gross_coordination": 0.4,
+      "balance": 0.35,
+      "reflexes": 0.25
+    },
+    "skill": "movement",
+    "range_requirement": "one_band",
+    "interruptible": true,
+    "allowed_defenses": [],
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 30,
+    "direction": "advance",
+    "movement_kind": "breakthrough"
+  },
+  "disengage": {
+    "name": "Disengage",
+    "category": "movement",
+    "target_type": "self",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.5,
+    "base_power": 0,
+    "attribute_weights": {
+      "gross_coordination": 0.4,
+      "balance": 0.35,
+      "reflexes": 0.25
+    },
+    "skill": "movement",
+    "range_requirement": "one_band",
+    "interruptible": true,
+    "allowed_defenses": [],
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 10,
+    "direction": "withdraw",
+    "movement_kind": "disengage"
+  },
+  "advance": {
+    "name": "Advance",
+    "category": "movement",
+    "target_type": "self",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.5,
+    "base_power": 0,
+    "attribute_weights": {
+      "gross_coordination": 0.4,
+      "balance": 0.35,
+      "reflexes": 0.25
+    },
+    "skill": "movement",
+    "range_requirement": "one_band",
+    "interruptible": true,
+    "allowed_defenses": [],
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 10,
+    "direction": "advance",
+    "movement_kind": "move"
+  },
+  "withdraw": {
+    "name": "Withdraw",
+    "category": "movement",
+    "target_type": "self",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.5,
+    "base_power": 0,
+    "attribute_weights": {
+      "gross_coordination": 0.4,
+      "balance": 0.35,
+      "reflexes": 0.25
+    },
+    "skill": "movement",
+    "range_requirement": "one_band",
+    "interruptible": true,
+    "allowed_defenses": [],
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 10,
+    "direction": "withdraw",
+    "movement_kind": "move"
+  },
+  "quick_attack": {
+    "name": "Quick Attack",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 2,
+    "preparation_seconds": 0.4,
+    "recovery_seconds": 0.6,
+    "base_power": 18,
+    "attribute_weights": {
+      "maximum_force": 0.4,
+      "grip_control": 0.3,
+      "gross_coordination": 0.3
+    },
+    "skill": "melee",
+    "range_requirement": "melee",
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "parry",
+      "brace"
+    ],
+    "parryability": "parryable",
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 20
+  },
+  "ranged_attack": {
+    "name": "Ranged Attack",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 3,
+    "preparation_seconds": 0.5,
+    "recovery_seconds": 0.7,
+    "base_power": 27,
+    "attribute_weights": {
+      "maximum_force": 0.4,
+      "grip_control": 0.3,
+      "gross_coordination": 0.3
+    },
+    "skill": "ranged",
+    "range_requirement": "ranged",
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "brace"
+    ],
+    "parryability": "not_parryable",
+    "effects": [],
+    "usage_conditions": {},
+    "base_usefulness": 20
+  }
+}

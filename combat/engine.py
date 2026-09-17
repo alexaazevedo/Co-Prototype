@@ -1,0 +1,388 @@
+"""Explicit combat rules; content and tuning live in JSON."""
+
+from dataclasses import dataclass, field
+from decimal import Decimal
+import json
+from pathlib import Path
+from . import positioning
+
+
+@dataclass
+class Character:
+    definition: dict
+    health: float = field(init=False)
+    stamina: float = field(init=False)
+    mana: float = field(init=False)
+    phase: str = "Idle"
+    action: str | None = None
+    target: str | None = None
+    phase_end_tick: int = 0
+    incapacitated: bool = False
+    band: str = field(init=False)
+    reached: str = "Frontline"
+    engagements: set = field(default_factory=set)
+    controlled_by: set = field(default_factory=set)
+    positional_states: set = field(default_factory=set)
+
+    def __post_init__(self):
+        self.band = self.definition["band"]
+        for resource in ("health", "stamina", "mana"):
+            setattr(self, resource, float(self.definition[f"maximum_{resource}"]))
+
+    @property
+    def id(self):
+        return self.definition["id"]
+
+
+def quality(character, template, balance):
+    weights = template["attribute_weights"]
+    capability = sum(character.definition["attributes"][key] * weight
+                     for key, weight in weights.items()) / sum(weights.values())
+    skill = character.definition["skills"][template["skill"]]
+    skill_modifier = (skill - balance["skill_baseline"]) * balance["skill_scale"]
+    return {"capability": capability, "skill": skill, "skill_modifier": skill_modifier,
+            "state_modifier": 0, "total": capability + skill_modifier}
+
+
+def outcome_for(margin, balance):
+    for band in balance["outcomes"]:
+        threshold = band["minimum_defender_margin"]
+        if threshold is None or (margin > threshold if band.get("exclusive") else margin >= threshold):
+            return band
+    raise ValueError("Outcome configuration needs a catch-all band")
+
+
+class Simulation:
+    def __init__(self, balance, actions, encounter):
+        self.balance, self.actions, self.encounter = balance, actions, encounter
+        self.tick = 0
+        self.events = []
+        self.result = None
+        self.positioning = encounter.get("positioning", False)
+        self.characters = {d["id"]: Character(d) for d in encounter["combatants"]}
+        self.validate()
+
+    def ticks(self, seconds):
+        ratio = Decimal(str(seconds)) / Decimal(str(self.balance["tick_seconds"]))
+        if ratio != ratio.to_integral_value():
+            raise ValueError(f"Duration {seconds} must be a multiple of tick_seconds")
+        return int(ratio)
+
+    def validate(self):
+        b = self.balance
+        if b["tick_seconds"] <= 0 or b["max_duration_seconds"] <= 0 or b["protection_k"] <= 0 or b["capability_baseline"] <= 0:
+            raise ValueError("Clock, duration, K and capability baseline must be positive")
+        if b["block_stamina_per_prevented_damage"] < 0:
+            raise ValueError("Block cost cannot be negative")
+        self.ticks(b["max_duration_seconds"])
+        definitions = self.encounter["combatants"]
+        if len(self.characters) != len(definitions) or len(definitions) < 2:
+            raise ValueError("Encounter requires at least two characters with unique IDs")
+        if len({f.definition["team"] for f in self.characters.values()}) != 2:
+            raise ValueError("Encounter requires exactly two opposing teams")
+        if self.encounter["party_team"] not in {f.definition["team"] for f in self.characters.values()}:
+            raise ValueError("Party team is missing")
+        for f in self.characters.values():
+            d = f.definition
+            if f.health <= 0 or min(f.stamina, f.mana, d["physical_protection"], d["magical_protection"]) < 0:
+                raise ValueError("Invalid starting resources or protection")
+            if d["band"] not in positioning.BANDS:
+                raise ValueError("Unknown positional band")
+            if not self.positioning and (d["band"] != "Frontline" or len(definitions) != 2):
+                raise ValueError("Enable positioning for formation encounters")
+            if d["engagement_capacity"] < 0 or not isinstance(d["engagement_capacity"], int):
+                raise ValueError("Engagement Capacity must be a nonnegative integer")
+            if self.positioning:
+                quality(f, b["control_quality"], b)
+                if b["movement_clear_margin"] <= 0:
+                    raise ValueError("Movement boundary must be positive")
+                opportunity = d.get("opportunity_attack")
+                if opportunity and (opportunity not in d["actions"] or self.actions[opportunity]["category"] != "physical_attack"
+                                    or self.actions[opportunity]["range_requirement"] not in {"duel", "melee"}):
+                    raise ValueError("Opportunity Attack must reference an available melee physical attack")
+            for key in d["actions"] + d["defenses"]:
+                a = self.actions[key]
+                if a["category"] == "defense":
+                    if key not in {"block", "dodge", "parry", "brace"}:
+                        raise ValueError("Unknown active defense")
+                    if key != "block" and a["stamina_cost"] < 0:
+                        raise ValueError("Defense cost cannot be negative")
+                    if key == "brace":
+                        if not 0 <= a["damage_reduction"] < 1:
+                            raise ValueError("Brace must reduce, but never negate, damage")
+                        continue
+                    if key in {"dodge", "parry"}:
+                        for band in b["outcomes"]:
+                            if not 0 <= a["outcome_reductions"][band["name"]] <= 1:
+                                raise ValueError("Defense reductions must be between zero and one")
+                    if key == "parry":
+                        if self.ticks(a["stagger_seconds"]) < 0 or a["difficult_quality_penalty"] > 0:
+                            raise ValueError("Invalid Parry stagger or difficulty penalty")
+                weights = a["attribute_weights"]
+                if not weights or any(w < 0 for w in weights.values()) or sum(weights.values()) <= 0:
+                    raise ValueError("Attribute weights must be nonnegative with a positive total")
+                quality(f, a, b)  # Also verifies referenced attributes and skills.
+                if a["category"] == "defense":
+                    continue
+                if a["category"] == "movement":
+                    if a["direction"] not in {"advance", "withdraw"} or a["movement_kind"] not in {"breakthrough", "disengage", "move"}:
+                        raise ValueError("Invalid movement direction or kind")
+                elif a["category"] != "physical_attack" or a["target_type"] != "enemy" or a["range_requirement"] not in {"duel", "melee", "ranged"}:
+                    raise ValueError("Only physical attacks and band movement are implemented")
+                if a["effects"] or a["usage_conditions"]:
+                    raise ValueError("Effects and usage conditions are not implemented yet")
+                if set(a["allowed_defenses"]) - {"block", "dodge", "parry", "brace"}:
+                    raise ValueError("Unknown allowed defense")
+                if a.get("parryability", "parryable") not in {"parryable", "difficult", "not_parryable"}:
+                    raise ValueError("Unknown parryability")
+                if a["resource_type"] not in ("stamina", "mana") or min(a["resource_cost"], a["base_power"]) < 0:
+                    raise ValueError("Invalid action resource or power")
+                if self.ticks(a["preparation_seconds"]) < 1 or self.ticks(a["recovery_seconds"]) < 1:
+                    raise ValueError("Preparation and recovery must each take at least one tick")
+
+    def log(self, event, actor=None, **data):
+        self.events.append({"timestamp": float(Decimal(self.tick) * Decimal(str(self.balance["tick_seconds"]))),
+                            "event": event, "actor": actor, **data})
+
+    def active(self):
+        return [f for f in self.characters.values() if not f.incapacitated]
+
+    def completion(self):
+        party = self.encounter["party_team"]
+        alive = self.active()
+        if not any(f.definition["team"] == party for f in alive):
+            return "Defeat"
+        if not any(f.definition["team"] != party for f in alive):
+            return "Victory"
+        return None
+
+    def decide(self, actor):
+        candidates, rejected = [], []
+        tactics = actor.definition["tactics"]
+        for key in actor.definition["actions"]:
+            action = self.actions[key]
+            available = getattr(actor, action["resource_type"])
+            if available + 1e-9 < action["resource_cost"]:
+                rejected.append({"action": key, "reason": "insufficient resource", "available": available})
+                continue
+            movement = action["category"] == "movement"
+            if movement:
+                reason = positioning.movement_reason(self, actor, action)
+                if reason:
+                    rejected.append({"action": key, "reason": reason, "available": available})
+                    continue
+            targets = [actor] if movement else sorted(self.active(), key=lambda f: f.id)
+            for target in targets:
+                if not movement and target.definition["team"] == actor.definition["team"]:
+                    continue
+                if not movement and self.positioning and not positioning.attack_access(actor, target, action):
+                    rejected.append({"action": key, "target": target.id, "reason": f"target outside {action['range_requirement']} access",
+                                     "available": available})
+                    continue
+                parts = {"base_usefulness": action["base_usefulness"],
+                         "tactical_bonus": tactics["action_bonuses"].get(key, 0),
+                         "target_preference": tactics["target_preferences"].get(target.id, 0),
+                         "resource_penalty": -action["resource_cost"] * tactics["resource_penalty_per_point"]}
+                if self.positioning and not movement:
+                    parts["engagement_bonus"] = tactics.get("engaged_target_bonus", 0) if target.id in actor.controlled_by | actor.engagements else 0
+                    parts["penetrating_threat_bonus"] = tactics.get("penetrating_target_bonus", 0) if target.reached != "Frontline" else 0
+                candidates.append({"action": key, "target": target.id, "score": sum(parts.values()), "components": parts})
+        candidates.sort(key=lambda c: (-c["score"], c["action"], c["target"]))
+        if not candidates:
+            # Log changes to idle availability once, rather than on every tick.
+            if actor.phase_end_tick != -1:
+                self.log("idle", actor.id, reason="no affordable legal action", rejected=rejected)
+                actor.phase_end_tick = -1
+            return
+        selected = candidates[0]
+        self.log("decision", actor.id, selected=selected, candidates=candidates, rejected=rejected,
+                 reason="highest utility; ties use action ID then target ID")
+        actor.action, actor.target = selected["action"], selected["target"]
+        a = self.actions[actor.action]
+        self.spend(actor, a["resource_type"], a["resource_cost"], "preparation", actor.action)
+        actor.phase = "Preparing"
+        actor.phase_end_tick = self.tick + self.ticks(a["preparation_seconds"])
+        self.log("preparation_start", actor.id, action=actor.action, target=actor.target,
+                 duration=a["preparation_seconds"], ends_at_tick=actor.phase_end_tick)
+
+    def spend(self, actor, resource, amount, reason, action):
+        before = getattr(actor, resource)
+        if before + 1e-9 < amount:
+            raise ValueError("Cannot spend an unaffordable resource cost")
+        setattr(actor, resource, max(0.0, before - amount))
+        self.log("resource_spent", actor.id, action=action, resource=resource, amount=amount,
+                 before=before, after=getattr(actor, resource), reason=reason)
+
+    def choose_defense(self, actor, target, action, attack_quality, raw):
+        """Score only legal, affordable reactions; ties use defense ID."""
+        candidates, rejected = [], []
+        tactics = target.definition["tactics"]
+        for key in sorted(target.definition["defenses"]):
+            template = self.actions[key]
+            reason = None
+            if key not in action["allowed_defenses"]:
+                reason = "attack does not allow this defense"
+            elif key == "parry" and action.get("parryability", "parryable") == "not_parryable":
+                reason = "attack is not parryable"
+            elif key == "dodge" and not target.definition.get("dodge_practical", True):
+                reason = "movement for Dodge is not practical"
+            defense_quality, stagger = None, 0
+            if key == "brace":
+                outcome = "No contest"
+                reduction = template["damage_reduction"]
+            else:
+                defense_quality = quality(target, template, self.balance)
+                if key == "parry" and action.get("parryability", "parryable") == "difficult":
+                    defense_quality["state_modifier"] += template["difficult_quality_penalty"]
+                    defense_quality["total"] += template["difficult_quality_penalty"]
+                band = outcome_for(defense_quality["total"] - attack_quality["total"], self.balance)
+                outcome = band["name"]
+                reduction = band["block_reduction"] if key == "block" else template["outcome_reductions"][outcome]
+                if key == "parry" and outcome == "Strong Defense":
+                    stagger = template["stagger_seconds"]
+            prevented = raw * reduction
+            cost = prevented * self.balance["block_stamina_per_prevented_damage"] if key == "block" else template["stamina_cost"]
+            if reason is None and target.stamina + 1e-9 < cost:
+                reason = "insufficient stamina"
+            if reason:
+                rejected.append({"defense": key, "reason": reason, "cost": cost})
+                continue
+            components = {"damage_prevented": prevented,
+                          "resource_penalty": -cost * tactics["resource_penalty_per_point"],
+                          "tactical_preference": tactics["defense_preferences"].get(key, 0)}
+            candidates.append({"defense": key, "cost": cost, "quality": defense_quality,
+                               "outcome": outcome, "reduction": reduction, "stagger_seconds": stagger,
+                               "components": components, "score": sum(components.values())})
+        candidates.sort(key=lambda c: (-c["score"], c["defense"]))
+        chosen = candidates[0] if candidates else {
+            "defense": "none", "cost": 0, "quality": None,
+            "outcome": self.balance["unopposed_outcome"], "reduction": 0, "stagger_seconds": 0}
+        self.log("defense_decision", target.id, incoming_actor=actor.id, defense=chosen["defense"],
+                 reason="highest defense utility; ties use defense ID" if candidates else "no valid affordable defense",
+                 selected=chosen, candidates=candidates, rejected=rejected, available_stamina=target.stamina)
+        return chosen
+
+    def opportunity_attack(self, controller, mover):
+        key = controller.definition.get("opportunity_attack")
+        if not key or controller.incapacitated:
+            self.log("opportunity_skipped", controller.id, target=mover.id, reason="no available Opportunity Attack")
+            return
+        a = self.actions[key]
+        if a["range_requirement"] == "ranged":
+            self.log("opportunity_skipped", controller.id, target=mover.id, reason="ranged Opportunity Attacks are not supported")
+            return
+        if getattr(controller, a["resource_type"]) + 1e-9 < a["resource_cost"]:
+            self.log("opportunity_skipped", controller.id, target=mover.id, reason="insufficient resource")
+            return
+        self.log("opportunity_attack", controller.id, action=key, target=mover.id)
+        self.spend(controller, a["resource_type"], a["resource_cost"], "opportunity attack", key)
+        self.execute(controller, action_key=key, target_id=mover.id, opportunity=True)
+
+    def execute(self, actor, *, action_key=None, target_id=None, opportunity=False):
+        action_key = actor.action if action_key is None else action_key
+        a = self.actions[action_key]
+        target = self.characters[actor.target if target_id is None else target_id]
+        if not opportunity:
+            actor.phase = "Executing"
+        stagger_seconds = 0
+        self.log("execution", actor.id, action=action_key, target=target.id, **({"opportunity": True} if opportunity else {}))
+        if a["category"] == "movement":
+            positioning.execute_movement(self, actor, action_key)
+        elif target.incapacitated:
+            self.log("action_cancelled", actor.id, reason="target incapacitated; cost not refunded")
+        elif self.positioning and not positioning.attack_access(actor, target, a):
+            self.log("action_cancelled", actor.id, reason=f"target moved outside {a['range_requirement']} access; cost not refunded")
+        else:
+            attack = quality(actor, a, self.balance)
+            raw = a["base_power"] * attack["capability"] / self.balance["capability_baseline"] * max(0, 1 + attack["skill_modifier"] / 100)
+            chosen = self.choose_defense(actor, target, a, attack, raw)
+            if chosen["defense"] != "none":
+                self.spend(target, "stamina", chosen["cost"], "active defense", chosen["defense"])
+            stagger_seconds = chosen["stagger_seconds"]
+            incoming = raw
+            defense_reduction = incoming * chosen["reduction"]
+            after_defense = incoming - defense_reduction
+            rating = target.definition["physical_protection"]
+            mitigation = rating / (rating + self.balance["protection_k"])
+            armor_reduction = after_defense * mitigation
+            final = after_defense - armor_reduction
+            before = target.health
+            target.health = max(0.0, target.health - final)
+            self.log("damage", actor.id, action=action_key, target=target.id, attack_quality=attack,
+                     defense_quality=chosen["quality"], outcome=chosen["outcome"], active_defense=chosen["defense"],
+                     base_power=a["base_power"], raw_damage=raw,
+                     incoming_damage=incoming, active_defense_reduction=defense_reduction,
+                     protection_rating=rating, protection_mitigation=mitigation, protection_reduction=armor_reduction,
+                     final_damage=final, health_lost=before-target.health, health_before=before, health_after=target.health)
+            if target.health == 0:
+                target.incapacitated = True
+                self.log("incapacitated", target.id, cancelled_action=target.action, cancelled_phase=target.phase,
+                         reason="health reached zero; non-dead")
+                target.phase, target.action, target.target = "Idle", None, None
+                target.phase_end_tick = 0
+                positioning.refresh(self)
+        if opportunity:
+            if stagger_seconds:
+                self.log("stagger_ignored", actor.id, source=target.id,
+                         reason="Opportunity Attacks preserve the controller's current action timing")
+            return
+        if actor.incapacitated:
+            return
+        actor.phase = "Recovering"
+        duration_ticks = self.ticks(a["recovery_seconds"]) + self.ticks(stagger_seconds)
+        actor.phase_end_tick = self.tick + duration_ticks
+        if stagger_seconds:
+            self.log("stagger", actor.id, source=target.id, added_recovery_seconds=stagger_seconds,
+                     reason="Strong Defense Parry", ends_at_tick=actor.phase_end_tick)
+        self.log("recovery_start", actor.id, action=actor.action,
+                 duration=float(Decimal(duration_ticks) * Decimal(str(self.balance["tick_seconds"]))),
+                 ends_at_tick=actor.phase_end_tick)
+
+    def run(self):
+        if self.events:
+            raise ValueError("Create a fresh Simulation for each run")
+        self.log("encounter_start", name=self.encounter["name"], order=sorted(self.characters),
+                 rules="phase completions in ID order, then idle decisions in ID order")
+        positioning.refresh(self)
+        for tick in range(self.ticks(self.balance["max_duration_seconds"]) + 1):
+            self.tick = tick
+            for actor in sorted(self.active(), key=lambda f: f.id):
+                if actor.incapacitated:
+                    continue
+                if actor.phase == "Preparing" and tick >= actor.phase_end_tick:
+                    self.execute(actor)
+                elif actor.phase == "Recovering" and tick >= actor.phase_end_tick:
+                    self.log("recovery_end", actor.id, action=actor.action)
+                    actor.phase, actor.action, actor.target = "Idle", None, None
+                self.result = self.completion()
+                if self.result:
+                    break
+            if self.result:
+                break
+            if tick == self.ticks(self.balance["max_duration_seconds"]):
+                self.result = "Unresolved"
+                break
+            for actor in sorted(self.active(), key=lambda f: f.id):
+                if actor.phase == "Idle":
+                    self.decide(actor)
+        self.log("encounter_complete", result=self.result, reason="time limit" if self.result == "Unresolved" else "one team incapacitated")
+        return self.report()
+
+    def report(self):
+        return {"encounter": self.encounter["name"], "result": self.result,
+                "duration_seconds": self.events[-1]["timestamp"], "event_count": len(self.events),
+                "combatants": [{"id": f.id, "name": f.definition["name"], "health": f.health,
+                                "stamina": f.stamina, "mana": f.mana, "incapacitated": f.incapacitated,
+                                "health_lost": f.definition["maximum_health"] - f.health,
+                                "stamina_spent": f.definition["maximum_stamina"] - f.stamina,
+                                **({"band": f.band, "opposing_band_reached": f.reached,
+                                    "engagements": sorted(f.engagements), "controlled_by": sorted(f.controlled_by),
+                                    "positional_states": sorted(f.positional_states)} if self.positioning else {})}
+                               for f in sorted(self.characters.values(), key=lambda f: f.id)]}
+
+
+def load_simulation(config_dir, encounter_path=None):
+    def read(name):
+        return json.loads((Path(config_dir) / f"{name}.json").read_text(encoding="utf-8"))
+    encounter = json.loads(Path(encounter_path).read_text(encoding="utf-8")) if encounter_path else read("encounter")
+    return Simulation(read("balance"), read("actions"), encounter)

@@ -1,0 +1,254 @@
+{
+  "name": "Formation test: Gareth and Elira versus Brute and two Skirmishers",
+  "party_team": "party",
+  "positioning": true,
+  "combatants": [
+    {
+      "id": "gareth",
+      "name": "Gareth",
+      "team": "party",
+      "band": "Frontline",
+      "maximum_health": 180,
+      "maximum_stamina": 100,
+      "maximum_mana": 0,
+      "physical_protection": 55,
+      "magical_protection": 15,
+      "engagement_capacity": 2,
+      "attributes": {
+        "maximum_force": 60,
+        "grip_control": 70,
+        "gross_coordination": 55,
+        "balance": 55,
+        "reflexes": 55,
+        "situational_awareness": 55
+      },
+      "skills": {
+        "melee": 60,
+        "block": 75,
+        "dodge": 50,
+        "parry": 60,
+        "control": 60,
+        "movement": 50
+      },
+      "actions": [
+        "sword_attack",
+        "disengage"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 10
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.2,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "sword_attack",
+      "control_priority": 10
+    },
+    {
+      "id": "elira",
+      "name": "Elira",
+      "team": "party",
+      "band": "Midline",
+      "maximum_health": 100,
+      "maximum_stamina": 80,
+      "maximum_mana": 50,
+      "physical_protection": 20,
+      "magical_protection": 15,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 55,
+        "grip_control": 60,
+        "gross_coordination": 65,
+        "balance": 55,
+        "reflexes": 55,
+        "situational_awareness": 60
+      },
+      "skills": {
+        "block": 40,
+        "dodge": 50,
+        "parry": 50,
+        "control": 50,
+        "movement": 50,
+        "ranged": 65
+      },
+      "actions": [
+        "ranged_attack"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {},
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.2,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "control_priority": 0
+    },
+    {
+      "id": "brute",
+      "name": "Brute",
+      "team": "enemy",
+      "band": "Frontline",
+      "maximum_health": 220,
+      "maximum_stamina": 90,
+      "maximum_mana": 0,
+      "physical_protection": 20,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 75,
+        "grip_control": 35,
+        "gross_coordination": 35,
+        "balance": 35,
+        "reflexes": 35,
+        "situational_awareness": 35
+      },
+      "skills": {
+        "melee": 40,
+        "block": 15,
+        "dodge": 25,
+        "parry": 40,
+        "control": 40,
+        "movement": 50
+      },
+      "actions": [
+        "heavy_attack"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "heavy_attack",
+      "engagement_priority": 20
+    },
+    {
+      "id": "skirmisher_1",
+      "name": "Skirmisher 1",
+      "team": "enemy",
+      "band": "Frontline",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 45,
+        "grip_control": 55,
+        "gross_coordination": 64,
+        "balance": 64,
+        "reflexes": 64,
+        "situational_awareness": 50
+      },
+      "skills": {
+        "melee": 60,
+        "block": 35,
+        "dodge": 60,
+        "parry": 55,
+        "control": 50,
+        "movement": 60
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "disengage"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 9
+    },
+    {
+      "id": "skirmisher_2",
+      "name": "Skirmisher 2",
+      "team": "enemy",
+      "band": "Frontline",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 45,
+        "grip_control": 55,
+        "gross_coordination": 64,
+        "balance": 64,
+        "reflexes": 64,
+        "situational_awareness": 50
+      },
+      "skills": {
+        "melee": 60,
+        "block": 35,
+        "dodge": 60,
+        "parry": 55,
+        "control": 50,
+        "movement": 60
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "disengage"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 8
+    }
+  ]
+}

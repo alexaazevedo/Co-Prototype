@@ -1,0 +1,24 @@
+{
+  "name": "Gareth versus Brute — foundation test",
+  "party_team": "party",
+  "combatants": [
+    {
+      "id": "gareth", "name": "Gareth", "team": "party", "band": "Frontline",
+      "maximum_health": 180, "maximum_stamina": 100, "maximum_mana": 0,
+      "physical_protection": 55, "magical_protection": 15, "engagement_capacity": 2,
+      "attributes": {"maximum_force": 60, "grip_control": 70, "gross_coordination": 55, "balance": 55, "reflexes": 55},
+      "skills": {"melee": 60, "block": 75, "dodge": 50, "parry": 60},
+      "actions": ["sword_attack"], "defenses": ["block", "dodge", "parry", "brace"],
+      "tactics": {"defense_preferences": {"block": 10}, "action_bonuses": {}, "target_preferences": {}, "resource_penalty_per_point": 0.2}
+    },
+    {
+      "id": "brute", "name": "Brute", "team": "enemy", "band": "Frontline",
+      "maximum_health": 220, "maximum_stamina": 90, "maximum_mana": 0,
+      "physical_protection": 20, "magical_protection": 5, "engagement_capacity": 1,
+      "attributes": {"maximum_force": 75, "grip_control": 35, "gross_coordination": 35, "balance": 35, "reflexes": 35},
+      "skills": {"melee": 40, "block": 15, "dodge": 25, "parry": 40},
+      "actions": ["heavy_attack"], "defenses": ["block", "dodge", "parry", "brace"],
+      "tactics": {"defense_preferences": {"block": 0}, "action_bonuses": {}, "target_preferences": {}, "resource_penalty_per_point": 0.0}
+    }
+  ]
+}
