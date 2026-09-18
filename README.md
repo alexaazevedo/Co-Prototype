@@ -66,10 +66,10 @@ in an encounter; encounter configuration and combat reports retain `combatants`.
 
 This is not yet the full v0.1 party. The formation scenario implements band
 access, Engagement Capacity, breakthrough, withdrawal, retreat and Opportunity Attacks.
-Spellcasting, support, general interruptions and general temporary effects are
-future stages. Pressured and Isolated are not yet modeled. Protected/Exposed
-indicate access and grant no generic Quality bonus. The action interruptible
-field remains metadata until the general interruption system is implemented.
+Spellcasting, support and temporary effects beyond the narrow Stagger mechanic
+are future stages. Pressured and Isolated are not yet modeled. Protected/Exposed
+indicate access and grant no generic Quality bonus. The action `interruptible`
+field now determines whether Stagger cancels an action during Preparation.
 Unsupported effects and unknown usage conditions are rejected rather than silently applied.
 
 ## Combat access principles
@@ -149,9 +149,10 @@ prevents later same-timestamp actions. This ordering is deterministic and can
 favor the earlier ID in a lethal tie; it is not simultaneous damage resolution.
 
 Execution is immediate. Costs are paid at preparation start, without refunds.
-All defenses are reactive, including during preparation/recovery; they do not delay the
-defender's action. No regeneration occurs. With no affordable action a character
-remains idle. A duration limit reports Unresolved, never a false victory.
+All defenses are reactive, including while Staggered and during Preparation or
+Recovery. Defending does not itself change the defender's action timing. No
+regeneration occurs. With no affordable action a character remains idle. A duration
+limit reports Unresolved, never a false victory.
 
 Quality = weighted capability + (skill - 50) × 0.4 + state modifiers. Difficult
 Parry applies a configured Quality penalty; final Quality is not clamped. Continuous Quality differences
@@ -204,12 +205,41 @@ of incoming raw damage before armor.
 Attacks can be `parryable`, `difficult` (-10 Parry Quality), or
 `not_parryable`. An attack's `allowed_defenses` further restricts responses.
 
-The current prototype contains an experimental Strong Defense Parry recovery-delay
-behavior. It adds 0.3 seconds to the attacker's upcoming Recovery where applicable.
-This is not the finalized Stagger mechanic and should not be treated as the
-specification for general interruption or temporary effects. Opportunity Attacks
-remain exempt from changing the controller's current action timing; that exception
-is explicitly logged.
+## Stagger
+
+Stagger is the prototype's first narrow temporary combat effect. Its duration and
+trigger are configured on an action or defense. The initial sources are Heavy
+Attack on Strong Hit and Parry on Strong Defense, both with a 0.3-second duration:
+
+```json
+"effects": [
+  {
+    "type": "stagger",
+    "outcome": "Strong Hit",
+    "recipient": "defender",
+    "duration_seconds": 0.3
+  }
+]
+```
+
+Stagger has a phase-specific consequence when applied:
+
+- Idle: normal action selection is locked until Stagger expires.
+- Preparing an interruptible action: the action is cancelled, its paid resource is
+  not refunded, and its normal Recovery is not applied. The Stagger lockout remains.
+- Preparing a non-interruptible action: Preparation continues without another penalty.
+- Recovering: the existing Recovery end is extended by the Stagger duration.
+- Executing: the duration extends the Recovery that immediately follows Execution.
+
+Reactive Block, Dodge, Parry and Brace remain available while Staggered. Stagger
+does not change defensive Quality, mitigation or costs. A second Stagger during an
+active Stagger window is ignored without refreshing or extending the first effect.
+
+A Strong Defense Parry now produces its Recovery extension through this shared
+Stagger rule. When an Opportunity Attack is strongly parried, its Stagger effect on
+the controller is suppressed so it cannot alter the controller's unrelated normal
+action or timing; the suppression is logged. Stun, other temporary effects and a
+general status-effect framework remain future work.
 
 `dodge_practical` is provisional prototype scaffolding. When present and false it
 can disable Dodge for a character, but it is not currently a locked general

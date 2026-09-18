@@ -51,7 +51,14 @@
       "brace"
     ],
     "parryability": "difficult",
-    "effects": [],
+    "effects": [
+      {
+        "type": "stagger",
+        "outcome": "Strong Hit",
+        "recipient": "defender",
+        "duration_seconds": 0.3
+      }
+    ],
     "usage_conditions": {},
     "base_usefulness": 20
   },
@@ -84,7 +91,14 @@
     },
     "skill": "parry",
     "difficult_quality_penalty": -10,
-    "stagger_seconds": 0.3,
+    "effects": [
+      {
+        "type": "stagger",
+        "outcome": "Strong Defense",
+        "recipient": "attacker",
+        "duration_seconds": 0.3
+      }
+    ],
     "outcome_reductions": {
       "Strong Defense": 0.85,
       "Defense": 0.7,

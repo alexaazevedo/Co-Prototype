@@ -4,32 +4,12 @@
   "positioning": true,
   "combatants": [
     {
-      "id": "gareth",
-      "team": "party",
-      "band": "Frontline"
-    },
-    {
-      "id": "talen",
+      "id": "mira",
       "team": "party",
       "band": "Backline"
     },
     {
       "id": "brute",
-      "team": "enemy",
-      "band": "Frontline"
-    },
-    {
-      "id": "skirmisher_1",
-      "team": "enemy",
-      "band": "Frontline"
-    },
-    {
-      "id": "skirmisher_2",
-      "team": "enemy",
-      "band": "Frontline"
-    },
-    {
-      "id": "skirmisher_3",
       "team": "enemy",
       "band": "Frontline"
     }

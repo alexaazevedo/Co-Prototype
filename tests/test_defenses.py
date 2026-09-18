@@ -46,7 +46,10 @@ class DefenseTests(unittest.TestCase):
                 "name": defense.title(), "category": "defense", "stamina_cost": cost,
                 "attribute_weights": {"maximum_force": 1}, "skill": defense,
                 "outcome_reductions": dict(reductions),
-                "difficult_quality_penalty": -10, "stagger_seconds": 0.3}
+                "difficult_quality_penalty": -10,
+                "effects": ([{"type": "stagger", "outcome": "Strong Defense",
+                              "recipient": "attacker", "duration_seconds": 0.3}]
+                            if defense == "parry" else [])}
             self.defender.definition["skills"][defense] = 50
         self.defender.definition["tactics"]["defense_preferences"] = {}
 

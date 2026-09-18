@@ -17,6 +17,10 @@ class Character:
     action: str | None = None
     target: str | None = None
     phase_end_tick: int = 0
+    stagger_end_tick: int = 0
+    pending_recovery_extension_ticks: int = 0
+    preparation_resource: str | None = None
+    preparation_cost: float = 0.0
     incapacitated: bool = False
     retreating: bool = False
     escaped: bool = False
@@ -71,6 +75,26 @@ class Simulation:
             raise ValueError(f"Duration {seconds} must be a multiple of tick_seconds")
         return int(ratio)
 
+    def validate_effects(self, action):
+        effects = action.get("effects", [])
+        if not isinstance(effects, list):
+            raise ValueError("Action effects must be a list")
+        outcomes = {band["name"] for band in self.balance["outcomes"]}
+        required = {"type", "outcome", "recipient", "duration_seconds"}
+        for effect in effects:
+            if not isinstance(effect, dict) or set(effect) != required:
+                raise ValueError("Effects require type, outcome, recipient and duration_seconds")
+            if effect["type"] != "stagger":
+                raise ValueError(f"Unsupported effect type: {effect['type']}")
+            if effect["outcome"] not in outcomes:
+                raise ValueError("Unknown effect outcome")
+            if effect["recipient"] not in {"attacker", "defender"}:
+                raise ValueError("Effect recipient must be attacker or defender")
+            duration = effect["duration_seconds"]
+            if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration <= 0:
+                raise ValueError("Effect duration must be positive")
+            self.ticks(duration)
+
     def validate(self):
         b = self.balance
         if b["tick_seconds"] <= 0 or b["max_duration_seconds"] <= 0 or b["protection_k"] <= 0 or b["capability_baseline"] <= 0:
@@ -110,6 +134,7 @@ class Simulation:
                     raise ValueError("Unknown action usage condition")
                 if "prevent_when_exposed" in conditions and not isinstance(conditions["prevent_when_exposed"], bool):
                     raise ValueError("prevent_when_exposed must be a boolean")
+                self.validate_effects(a)
                 if a["category"] == "defense":
                     if key not in {"block", "dodge", "parry", "brace"}:
                         raise ValueError("Unknown active defense")
@@ -124,21 +149,21 @@ class Simulation:
                             if not 0 <= a["outcome_reductions"][band["name"]] <= 1:
                                 raise ValueError("Defense reductions must be between zero and one")
                     if key == "parry":
-                        if self.ticks(a["stagger_seconds"]) < 0 or a["difficult_quality_penalty"] > 0:
-                            raise ValueError("Invalid Parry stagger or difficulty penalty")
+                        if a["difficult_quality_penalty"] > 0:
+                            raise ValueError("Invalid Parry difficulty penalty")
                 weights = a["attribute_weights"]
                 if not weights or any(w < 0 for w in weights.values()) or sum(weights.values()) <= 0:
                     raise ValueError("Attribute weights must be nonnegative with a positive total")
                 quality(f, a, b)  # Also verifies referenced attributes and skills.
                 if a["category"] == "defense":
                     continue
+                if not isinstance(a.get("interruptible"), bool):
+                    raise ValueError("Actions must define interruptible as a boolean")
                 if a["category"] == "movement":
                     if a["direction"] not in {"advance", "withdraw"} or a["movement_kind"] not in {"breakthrough", "withdraw", "move"}:
                         raise ValueError("Invalid movement direction or kind")
                 elif a["category"] != "physical_attack" or a["target_type"] != "enemy" or a["range_requirement"] not in {"duel", "melee", "ranged"}:
                     raise ValueError("Only physical attacks and band movement are implemented")
-                if a["effects"]:
-                    raise ValueError("Action effects are not implemented yet")
                 if set(a["allowed_defenses"]) - {"block", "dodge", "parry", "brace"}:
                     raise ValueError("Unknown allowed defense")
                 if a.get("parryability", "parryable") not in {"parryable", "difficult", "not_parryable"}:
@@ -175,7 +200,7 @@ class Simulation:
         return None
 
     def decide(self, actor):
-        if actor.incapacitated or actor.escaped:
+        if actor.incapacitated or actor.escaped or self.tick < actor.stagger_end_tick:
             return
         candidates, rejected = [], []
         tactics = actor.definition["tactics"]
@@ -232,7 +257,10 @@ class Simulation:
                  reason="highest utility; ties use action ID then target ID")
         actor.action, actor.target = selected["action"], selected["target"]
         a = self.actions[actor.action]
-        self.spend(actor, a["resource_type"], retreat.action_cost(self, actor, a), "preparation", actor.action)
+        cost = retreat.action_cost(self, actor, a)
+        self.spend(actor, a["resource_type"], cost, "preparation", actor.action)
+        actor.preparation_resource = a["resource_type"]
+        actor.preparation_cost = cost
         actor.phase = "Preparing"
         actor.phase_end_tick = self.tick + self.ticks(a["preparation_seconds"])
         self.log("preparation_start", actor.id, action=actor.action, target=actor.target,
@@ -245,6 +273,54 @@ class Simulation:
         setattr(actor, resource, max(0.0, before - amount))
         self.log("resource_spent", actor.id, action=action, resource=resource, amount=amount,
                  before=before, after=getattr(actor, resource), reason=reason)
+
+    def apply_stagger(self, source, target, source_action, duration_seconds, *, suppressed_reason=None):
+        """Apply the one supported temporary effect according to the target's current phase."""
+        phase = target.phase
+        common = {"source": source.id, "source_action": source_action,
+                  "duration": duration_seconds, "target_phase": phase}
+        if suppressed_reason:
+            self.log("stagger_ignored", target.id, reason=suppressed_reason, **common)
+            return False
+        if self.tick < target.stagger_end_tick:
+            self.log("stagger_ignored", target.id, reason="already_staggered",
+                     active_until_tick=target.stagger_end_tick, **common)
+            return False
+
+        duration_ticks = self.ticks(duration_seconds)
+        target.stagger_end_tick = self.tick + duration_ticks
+        details = {**common, "ends_at_tick": target.stagger_end_tick}
+        if phase == "Preparing" and self.actions[target.action]["interruptible"]:
+            interrupted_action = target.action
+            details.update(consequence="action_interrupted", interrupted_action=interrupted_action,
+                           resource=target.preparation_resource, resource_spent=target.preparation_cost,
+                           refunded=0, normal_recovery_applied=False)
+            target.phase, target.action, target.target = "Idle", None, None
+            target.phase_end_tick = 0
+            target.preparation_resource, target.preparation_cost = None, 0.0
+        elif phase == "Preparing":
+            details["consequence"] = "preparation_continues"
+        elif phase == "Recovering":
+            target.phase_end_tick += duration_ticks
+            details.update(consequence="recovery_extended", added_recovery_seconds=duration_seconds,
+                           recovery_ends_at_tick=target.phase_end_tick)
+        elif phase == "Executing":
+            target.pending_recovery_extension_ticks = duration_ticks
+            details.update(consequence="recovery_extended", added_recovery_seconds=duration_seconds)
+        else:
+            details["consequence"] = "action_lockout"
+        self.log("stagger", target.id, **details)
+        return True
+
+    def apply_effects(self, effects, outcome, attacker, defender, source, source_action,
+                      *, suppress_for_opportunity=False):
+        for effect in effects:
+            if effect["outcome"] != outcome:
+                continue
+            recipient = attacker if effect["recipient"] == "attacker" else defender
+            self.apply_stagger(source, recipient, source_action, effect["duration_seconds"],
+                               suppressed_reason=("opportunity_attack_exception"
+                                                  if suppress_for_opportunity else None))
 
     def choose_defense(self, actor, target, action, attack_quality, raw):
         """Score only legal, affordable reactions; ties use defense ID."""
@@ -261,7 +337,7 @@ class Simulation:
                 reason = "attack is not parryable"
             elif key == "dodge" and not target.definition.get("dodge_practical", True):
                 reason = "movement for Dodge is not practical"
-            defense_quality, stagger = None, 0
+            defense_quality = None
             if key == "brace":
                 outcome = "No contest"
                 reduction = template["damage_reduction"]
@@ -273,8 +349,6 @@ class Simulation:
                 band = outcome_for(defense_quality["total"] - attack_quality["total"], self.balance)
                 outcome = band["name"]
                 reduction = band["block_reduction"] if key == "block" else template["outcome_reductions"][outcome]
-                if key == "parry" and outcome == "Strong Defense":
-                    stagger = template["stagger_seconds"]
             prevented = raw * reduction
             cost = prevented * self.balance["block_stamina_per_prevented_damage"] if key == "block" else template["stamina_cost"]
             if reason is None and target.stamina + 1e-9 < cost:
@@ -286,12 +360,12 @@ class Simulation:
                           "resource_penalty": -cost * tactics["resource_penalty_per_point"],
                           "tactical_preference": tactics["defense_preferences"].get(key, 0)}
             candidates.append({"defense": key, "cost": cost, "quality": defense_quality,
-                               "outcome": outcome, "reduction": reduction, "stagger_seconds": stagger,
+                               "outcome": outcome, "reduction": reduction,
                                "components": components, "score": sum(components.values())})
         candidates.sort(key=lambda c: (-c["score"], c["defense"]))
         chosen = candidates[0] if candidates else {
             "defense": "none", "cost": 0, "quality": None,
-            "outcome": self.balance["unopposed_outcome"], "reduction": 0, "stagger_seconds": 0}
+            "outcome": self.balance["unopposed_outcome"], "reduction": 0}
         self.log("defense_decision", target.id, incoming_actor=actor.id, defense=chosen["defense"],
                  reason="highest defense utility; ties use defense ID" if candidates else "no valid affordable defense",
                  selected=chosen, candidates=candidates, rejected=rejected, available_stamina=target.stamina)
@@ -325,7 +399,6 @@ class Simulation:
         target = self.characters[actor.target if target_id is None else target_id]
         if not opportunity:
             actor.phase = "Executing"
-        stagger_seconds = 0
         self.log("execution", actor.id, action=action_key, target=target.id, **({"opportunity": True} if opportunity else {}))
         blocked = self.action_block_reason(actor, a)
         if blocked:
@@ -343,7 +416,6 @@ class Simulation:
             chosen = self.choose_defense(actor, target, a, attack, raw)
             if chosen["defense"] != "none":
                 self.spend(target, "stamina", chosen["cost"], "active defense", chosen["defense"])
-            stagger_seconds = chosen["stagger_seconds"]
             incoming = raw
             defense_reduction = incoming * chosen["reduction"]
             after_defense = incoming - defense_reduction
@@ -359,26 +431,28 @@ class Simulation:
                      incoming_damage=incoming, active_defense_reduction=defense_reduction,
                      protection_rating=rating, protection_mitigation=mitigation, protection_reduction=armor_reduction,
                      final_damage=final, health_lost=before-target.health, health_before=before, health_after=target.health)
+            if chosen["defense"] != "none":
+                defense = self.actions[chosen["defense"]]
+                self.apply_effects(defense.get("effects", []), chosen["outcome"], actor, target,
+                                   target, chosen["defense"], suppress_for_opportunity=opportunity)
+            self.apply_effects(a.get("effects", []), chosen["outcome"], actor, target, actor, action_key)
             if target.health == 0:
                 target.incapacitated = True
                 self.log("incapacitated", target.id, cancelled_action=target.action, cancelled_phase=target.phase,
                          reason="health reached zero; non-dead")
                 target.phase, target.action, target.target = "Idle", None, None
                 target.phase_end_tick = 0
+                target.preparation_resource, target.preparation_cost = None, 0.0
                 positioning.refresh(self)
         if opportunity:
-            if stagger_seconds:
-                self.log("stagger_ignored", actor.id, source=target.id,
-                         reason="Opportunity Attacks preserve the controller's current action timing")
             return
         if actor.incapacitated or actor.escaped:
             return
         actor.phase = "Recovering"
-        duration_ticks = self.ticks(a["recovery_seconds"]) + self.ticks(stagger_seconds)
+        duration_ticks = self.ticks(a["recovery_seconds"]) + actor.pending_recovery_extension_ticks
+        actor.pending_recovery_extension_ticks = 0
         actor.phase_end_tick = self.tick + duration_ticks
-        if stagger_seconds:
-            self.log("stagger", actor.id, source=target.id, added_recovery_seconds=stagger_seconds,
-                     reason="Strong Defense Parry", ends_at_tick=actor.phase_end_tick)
+        actor.preparation_resource, actor.preparation_cost = None, 0.0
         self.log("recovery_start", actor.id, action=actor.action,
                  duration=float(Decimal(duration_ticks) * Decimal(str(self.balance["tick_seconds"]))),
                  ends_at_tick=actor.phase_end_tick)

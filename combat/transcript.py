@@ -105,11 +105,27 @@ def render_transcript(events, report, definitions, actions, *, verbose=False):
                         detail(f"Rejected {action_name(rejected['defense'])}: {rejected['reason']} "
                                f"(cost {number(rejected['cost'])}).")
         elif kind == "stagger":
-            heading(event, f"{name(actor)} is STAGGERED by {name(event['source'])}'s Parry.")
-            detail(f"Recovery extended by {number(event['added_recovery_seconds'])}s.")
+            heading(event, f"{name(actor)} is STAGGERED by {name(event['source'])}'s "
+                    f"{action_name(event['source_action'])}.")
+            detail(f"Applied for {number(event['duration'])}s during {event['target_phase'].lower()}.")
+            if event["consequence"] == "action_interrupted":
+                detail(f"{action_name(event['interrupted_action'])} is interrupted; "
+                       f"{number(event['resource_spent'])} {event['resource'].title()} remains spent.")
+                detail("No refund and no normal Recovery; the Stagger lockout applies.")
+            elif event["consequence"] == "action_lockout":
+                detail("Normal action selection is locked until Stagger expires; reactive defenses remain available.")
+            elif event["consequence"] == "recovery_extended":
+                detail(f"Recovery extended by {number(event['added_recovery_seconds'])}s.")
+            else:
+                detail("Preparation is non-interruptible and continues normally.")
         elif kind == "stagger_ignored":
-            heading(event, f"{name(actor)}'s Opportunity Attack is strongly parried.")
-            detail(event["reason"] + ".")
+            heading(event, f"Stagger from {name(event['source'])}'s "
+                    f"{action_name(event['source_action'])} against {name(actor)} is ignored.")
+            detail(f"Attempted {number(event['duration'])}s during {event['target_phase'].lower()}.")
+            if event["reason"] == "already_staggered":
+                detail("Stagger was already active, so the later effect does not refresh or extend it.")
+            else:
+                detail("Opportunity Attack exception preserves the controller's unrelated action timing.")
         elif kind in {"engagement_start", "engagement_end"}:
             verb = "engages" if kind == "engagement_start" else "releases"
             heading(event, f"{name(actor)} {verb} {name(event['target'])}.")

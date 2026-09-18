@@ -84,6 +84,7 @@
         "movement": 42
       },
       "actions": [
+	    "breakthrough",
         "heavy_attack",
         "withdraw"
       ],
@@ -195,8 +196,7 @@
         "withdraw"
       ],
       "defenses": [
-        "dodge",
-        "brace"
+        "dodge"
       ],
       "tactics": {
         "defense_preferences": {
