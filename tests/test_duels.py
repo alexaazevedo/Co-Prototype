@@ -4,16 +4,15 @@ import unittest
 from combat.encounters import make_duel
 from combat.engine import Simulation
 from combat import positioning
-from pathlib import Path
-from combat.engine import load_simulation
+from tests.scenarios import formation_fixture
 
 
 class DuelTests(unittest.TestCase):
     def setUp(self):
-        self.fixture = load_simulation(Path(__file__).resolve().parent.parent / 'config', Path(__file__).resolve().parent.parent / 'config/formation.json')
+        self.fixture = formation_fixture()
         self.original = deepcopy(self.fixture.encounter)
 
-    def duel(self, positions="frontline", first="gareth", second="talen"):
+    def duel(self, positions="frontline", first="gareth", second="elira"):
         encounter = make_duel(self.fixture.encounter, first, second, positions)
         return Simulation(self.fixture.balance, self.fixture.actions, encounter)
 
@@ -21,28 +20,28 @@ class DuelTests(unittest.TestCase):
         sim = self.duel()
         self.assertEqual(len(sim.characters), 2)
         self.assertEqual(sim.characters["gareth"].definition["team"], "party")
-        self.assertEqual(sim.characters["talen"].definition["team"], "enemy")
+        self.assertEqual(sim.characters["elira"].definition["team"], "enemy")
         self.assertEqual({c.band for c in sim.characters.values()}, {"Frontline"})
         for character in sim.characters.values():
             expected = deepcopy(next(c for c in self.original["combatants"] if c["id"] == character.id))
             expected.update(team=character.definition["team"], band="Frontline")
             self.assertEqual(character.definition, expected)
         positioning.refresh(sim)
-        self.assertEqual(sim.characters["talen"].positional_states, {"Exposed"})
-        self.assertIsNotNone(sim.action_block_reason(sim.characters["talen"], sim.actions["ranged_attack"]))
+        self.assertEqual(sim.characters["elira"].positional_states, {"Exposed"})
+        self.assertIsNotNone(sim.action_block_reason(sim.characters["elira"], sim.actions["ranged_attack"]))
         self.assertEqual(self.fixture.encounter, self.original)
 
     def test_base_keeps_bands_and_existing_range_rules(self):
         sim = self.duel("base")
         self.assertEqual(sim.characters["gareth"].band, "Frontline")
-        self.assertEqual(sim.characters["talen"].band, "Backline")
+        self.assertEqual(sim.characters["elira"].band, "Midline")
         positioning.refresh(sim)
-        self.assertFalse(positioning.can_access(sim.characters["gareth"], sim.characters["talen"]))
-        self.assertIsNone(sim.action_block_reason(sim.characters["talen"], sim.actions["ranged_attack"]))
+        self.assertFalse(positioning.can_access(sim.characters["gareth"], sim.characters["elira"]))
+        self.assertIsNone(sim.action_block_reason(sim.characters["elira"], sim.actions["ranged_attack"]))
         self.assertEqual(self.fixture.encounter, self.original)
 
     def test_first_character_sets_result_perspective(self):
-        for first, second in (("gareth", "talen"), ("talen", "gareth")):
+        for first, second in (("gareth", "elira"), ("elira", "gareth")):
             with self.subTest(first=first):
                 sim = self.duel(first=first, second=second)
                 sim.characters[second].incapacitated = True
@@ -52,7 +51,7 @@ class DuelTests(unittest.TestCase):
                 self.assertEqual(sim.completion(), "Defeat")
 
     def test_rejects_unknown_or_duplicate_selections(self):
-        for first, second in (("gareth", "gareth"), ("missing", "talen")):
+        for first, second in (("gareth", "gareth"), ("missing", "elira")):
             with self.subTest(first=first, second=second), self.assertRaises(ValueError):
                 self.duel(first=first, second=second)
 

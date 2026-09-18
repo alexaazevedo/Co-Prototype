@@ -1,271 +1,32 @@
 {
-  "name": "Formation test: Rook and Mira versus Skirmisher",
+  "name": "Formation test: Rook, Mira, and Bran versus two Skirmishers",
   "party_team": "party",
   "positioning": true,
   "combatants": [
     {
       "id": "skirmisher_1",
-      "name": "Skirmisher 1",
       "team": "enemy",
-      "band": "Frontline",
-      "maximum_health": 65,
-      "maximum_stamina": 70,
-      "maximum_mana": 0,
-      "physical_protection": 10,
-      "magical_protection": 5,
-      "engagement_capacity": 0,
-      "attributes": {
-        "maximum_force": 48,
-        "explosive_power": 72,
-        "grip_control": 62,
-        "reflexes": 77,
-        "fine_motor_control": 68,
-        "gross_coordination": 80,
-        "balance": 78,
-        "spatial_awareness": 76,
-        "perception": 70,
-        "situational_awareness": 72
-      },
-      "skills": {
-        "melee": 80,
-        "block": 35,
-        "dodge": 65,
-        "parry": 62,
-        "control": 48,
-        "movement": 74
-      },
-      "actions": ["quick_attack", "breakthrough", "withdraw"],
-      "defenses": ["block", "dodge", "parry", "brace"],
-      "tactics": {
-        "defense_preferences": {
-          "dodge": 8,
-          "parry": 3,
-          "block": 0
-        },
-        "action_bonuses": {},
-        "target_preferences": {},
-        "resource_penalty_per_point": 0.0,
-        "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 20
-      },
-      "opportunity_attack": "quick_attack",
-      "engagement_priority": 9
+      "band": "Frontline"
     },
     {
       "id": "skirmisher_2",
-      "name": "Skirmisher 2",
       "team": "enemy",
-      "band": "Frontline",
-      "maximum_health": 65,
-      "maximum_stamina": 70,
-      "maximum_mana": 0,
-      "physical_protection": 10,
-      "magical_protection": 5,
-      "engagement_capacity": 0,
-      "attributes": {
-        "maximum_force": 48,
-        "explosive_power": 72,
-        "grip_control": 62,
-        "reflexes": 77,
-        "fine_motor_control": 68,
-        "gross_coordination": 80,
-        "balance": 78,
-        "spatial_awareness": 76,
-        "perception": 70,
-        "situational_awareness": 72
-      },
-      "skills": {
-        "melee": 80,
-        "block": 35,
-        "dodge": 65,
-        "parry": 62,
-        "control": 48,
-        "movement": 74
-      },
-      "actions": ["quick_attack", "breakthrough", "withdraw"],
-      "defenses": ["block", "dodge", "parry", "brace"],
-      "tactics": {
-        "defense_preferences": {
-          "dodge": 8,
-          "parry": 3,
-          "block": 0
-        },
-        "action_bonuses": {},
-        "target_preferences": {},
-        "resource_penalty_per_point": 0.0,
-        "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 20
-      },
-      "opportunity_attack": "quick_attack",
-      "engagement_priority": 8
+      "band": "Frontline"
     },
     {
       "id": "rook",
-      "name": "Rook",
       "team": "party",
-      "band": "Frontline",
-
-      "maximum_health": 135,
-      "maximum_stamina": 85,
-      "maximum_mana": 0,
-
-      "physical_protection": 35,
-      "magical_protection": 10,
-
-      "engagement_capacity": 1,
-
-      "attributes": {
-        "maximum_force": 68,
-        "explosive_power": 58,
-        "grip_control": 61,
-        "reflexes": 48,
-        "fine_motor_control": 42,
-        "gross_coordination": 52,
-        "balance": 55,
-        "spatial_awareness": 47,
-        "perception": 48,
-        "situational_awareness": 50
-      },
-
-      "skills": {
-        "melee": 56,
-        "block": 54,
-        "dodge": 42,
-        "parry": 46,
-        "control": 49,
-        "movement": 45
-      },
-
-      "actions": ["sword_attack", "withdraw"],
-
-      "defenses": ["block", "dodge", "brace"],
-
-      "tactics": {
-        "defense_preferences": {
-          "block": 8
-        },
-        "action_bonuses": {},
-        "target_preferences": {},
-        "resource_penalty_per_point": 0.2,
-        "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 20
-      },
-
-      "opportunity_attack": "sword_attack",
-      "control_priority": 6
+      "band": "Frontline"
     },
     {
       "id": "mira",
-      "name": "Mira",
       "team": "party",
-      "band": "Backline",
-
-      "maximum_health": 85,
-      "maximum_stamina": 75,
-      "maximum_mana": 0,
-
-      "physical_protection": 15,
-      "magical_protection": 10,
-
-      "engagement_capacity": 0,
-
-      "attributes": {
-        "maximum_force": 43,
-        "explosive_power": 52,
-        "grip_control": 57,
-        "reflexes": 56,
-        "fine_motor_control": 71,
-        "gross_coordination": 55,
-        "balance": 49,
-        "spatial_awareness": 66,
-        "perception": 63,
-        "situational_awareness": 51
-      },
-
-      "skills": {
-        "ranged": 59,
-        "melee": 34,
-        "block": 25,
-        "dodge": 51,
-        "parry": 28,
-        "control": 25,
-        "movement": 52
-      },
-
-      "actions": ["ranged_attack", "knife_attack", "withdraw"],
-
-      "defenses": ["dodge", "brace"],
-
-      "tactics": {
-        "defense_preferences": {
-          "dodge": 8
-        },
-        "action_bonuses": {},
-        "target_preferences": {},
-        "resource_penalty_per_point": 0.15,
-        "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 25
-      },
-
-      "opportunity_attack": "knife_attack",
-      "control_priority": 2
+      "band": "Backline"
     },
     {
       "id": "bran",
-      "name": "Bran",
       "team": "party",
-      "band": "Midline",
-
-      "maximum_health": 115,
-      "maximum_stamina": 90,
-      "maximum_mana": 0,
-
-      "physical_protection": 25,
-      "magical_protection": 15,
-
-      "engagement_capacity": 1,
-
-      "attributes": {
-        "maximum_force": 54,
-        "explosive_power": 67,
-        "grip_control": 48,
-        "reflexes": 73,
-        "fine_motor_control": 51,
-        "gross_coordination": 68,
-        "balance": 62,
-        "spatial_awareness": 61,
-        "perception": 57,
-        "situational_awareness": 45
-      },
-
-      "skills": {
-        "melee": 48,
-        "ranged": 45,
-        "block": 37,
-        "dodge": 58,
-        "parry": 42,
-        "control": 40,
-        "movement": 62
-      },
-
-      "actions": ["knife_attack", "ranged_attack", "withdraw"],
-
-      "defenses": ["dodge", "parry", "brace"],
-
-      "tactics": {
-        "defense_preferences": {
-          "dodge": 5,
-          "parry": 2
-        },
-        "action_bonuses": {},
-        "target_preferences": {},
-        "resource_penalty_per_point": 0.15,
-        "engaged_target_bonus": 10,
-        "penetrating_target_bonus": 20
-      },
-
-      "opportunity_attack": "knife_attack",
-      "control_priority": 4
+      "band": "Midline"
     }
   ],
   "retreat": {

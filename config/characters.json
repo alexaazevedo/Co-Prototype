@@ -1,0 +1,484 @@
+{
+  "characters": [
+    {
+      "id": "bran",
+      "name": "Bran",
+      "maximum_health": 115,
+      "maximum_stamina": 90,
+      "maximum_mana": 0,
+      "physical_protection": 25,
+      "magical_protection": 15,
+      "engagement_capacity": 1,
+      "attributes": {
+        "maximum_force": 54,
+        "explosive_power": 67,
+        "grip_control": 48,
+        "reflexes": 73,
+        "fine_motor_control": 51,
+        "gross_coordination": 68,
+        "balance": 62,
+        "spatial_awareness": 61,
+        "perception": 57,
+        "situational_awareness": 45
+      },
+      "skills": {
+        "melee": 48,
+        "ranged": 45,
+        "block": 37,
+        "dodge": 58,
+        "parry": 42,
+        "control": 40,
+        "movement": 62
+      },
+      "actions": [
+        "knife_attack",
+        "ranged_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 5,
+          "parry": 2
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.15,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "knife_attack",
+      "control_priority": 4
+    },
+    {
+      "id": "brute",
+      "name": "Brute",
+      "maximum_health": 220,
+      "maximum_stamina": 90,
+      "maximum_mana": 0,
+      "physical_protection": 20,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 88,
+        "explosive_power": 78,
+        "grip_control": 60,
+        "reflexes": 38,
+        "fine_motor_control": 30,
+        "gross_coordination": 42,
+        "balance": 48,
+        "spatial_awareness": 40,
+        "perception": 42,
+        "situational_awareness": 38
+      },
+      "skills": {
+        "melee": 60,
+        "block": 20,
+        "dodge": 25,
+        "parry": 30,
+        "control": 45,
+        "movement": 42
+      },
+      "actions": [
+        "heavy_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "brace": 8,
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "heavy_attack",
+      "engagement_priority": 20
+    },
+    {
+      "id": "gareth",
+      "name": "Gareth",
+      "maximum_health": 180,
+      "maximum_stamina": 100,
+      "maximum_mana": 0,
+      "physical_protection": 55,
+      "magical_protection": 15,
+      "engagement_capacity": 2,
+      "attributes": {
+        "maximum_force": 82,
+        "explosive_power": 68,
+        "grip_control": 86,
+        "reflexes": 58,
+        "fine_motor_control": 48,
+        "gross_coordination": 65,
+        "balance": 80,
+        "spatial_awareness": 60,
+        "perception": 58,
+        "situational_awareness": 75
+      },
+      "skills": {
+        "melee": 60,
+        "block": 75,
+        "dodge": 50,
+        "parry": 60,
+        "control": 60,
+        "movement": 50
+      },
+      "actions": [
+        "sword_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 10
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.2,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "sword_attack",
+      "control_priority": 10
+    },
+    {
+      "id": "mira",
+      "name": "Mira",
+      "maximum_health": 85,
+      "maximum_stamina": 75,
+      "maximum_mana": 0,
+      "physical_protection": 15,
+      "magical_protection": 10,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 43,
+        "explosive_power": 52,
+        "grip_control": 57,
+        "reflexes": 56,
+        "fine_motor_control": 71,
+        "gross_coordination": 55,
+        "balance": 49,
+        "spatial_awareness": 66,
+        "perception": 63,
+        "situational_awareness": 51
+      },
+      "skills": {
+        "ranged": 59,
+        "melee": 34,
+        "block": 25,
+        "dodge": 51,
+        "parry": 28,
+        "control": 25,
+        "movement": 52
+      },
+      "actions": [
+        "ranged_attack",
+        "knife_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "dodge",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 8
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.15,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 25
+      },
+      "opportunity_attack": "knife_attack",
+      "control_priority": 2
+    },
+    {
+      "id": "rook",
+      "name": "Rook",
+      "maximum_health": 135,
+      "maximum_stamina": 85,
+      "maximum_mana": 0,
+      "physical_protection": 35,
+      "magical_protection": 10,
+      "engagement_capacity": 1,
+      "attributes": {
+        "maximum_force": 68,
+        "explosive_power": 58,
+        "grip_control": 61,
+        "reflexes": 48,
+        "fine_motor_control": 42,
+        "gross_coordination": 52,
+        "balance": 55,
+        "spatial_awareness": 47,
+        "perception": 48,
+        "situational_awareness": 50
+      },
+      "skills": {
+        "melee": 56,
+        "block": 54,
+        "dodge": 42,
+        "parry": 46,
+        "control": 49,
+        "movement": 45
+      },
+      "actions": [
+        "sword_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "block": 8
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.2,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "sword_attack",
+      "control_priority": 6
+    },
+    {
+      "id": "skirmisher_1",
+      "name": "Skirmisher 1",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
+      },
+      "skills": {
+        "melee": 80,
+        "block": 35,
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 9
+    },
+    {
+      "id": "skirmisher_2",
+      "name": "Skirmisher 2",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
+      },
+      "skills": {
+        "melee": 80,
+        "block": 35,
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 8
+    },
+    {
+      "id": "skirmisher_3",
+      "name": "Skirmisher 3",
+      "maximum_health": 65,
+      "maximum_stamina": 70,
+      "maximum_mana": 0,
+      "physical_protection": 10,
+      "magical_protection": 5,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 48,
+        "explosive_power": 72,
+        "grip_control": 62,
+        "reflexes": 77,
+        "fine_motor_control": 68,
+        "gross_coordination": 80,
+        "balance": 78,
+        "spatial_awareness": 76,
+        "perception": 70,
+        "situational_awareness": 72
+      },
+      "skills": {
+        "melee": 80,
+        "block": 35,
+        "dodge": 65,
+        "parry": 62,
+        "control": 48,
+        "movement": 74
+      },
+      "actions": [
+        "quick_attack",
+        "breakthrough",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 8,
+          "parry": 3,
+          "block": 0
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.0,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "quick_attack",
+      "engagement_priority": 8
+    },
+    {
+      "id": "talen",
+      "name": "Talen",
+      "maximum_health": 105,
+      "maximum_stamina": 90,
+      "maximum_mana": 0,
+      "physical_protection": 25,
+      "magical_protection": 15,
+      "engagement_capacity": 0,
+      "attributes": {
+        "maximum_force": 58,
+        "explosive_power": 62,
+        "grip_control": 68,
+        "reflexes": 78,
+        "fine_motor_control": 88,
+        "gross_coordination": 76,
+        "balance": 72,
+        "spatial_awareness": 84,
+        "perception": 80,
+        "situational_awareness": 70
+      },
+      "skills": {
+        "melee": 60,
+        "ranged": 82,
+        "block": 25,
+        "dodge": 76,
+        "parry": 45,
+        "control": 40,
+        "movement": 72
+      },
+      "actions": [
+        "ranged_attack",
+        "knife_attack",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {
+          "dodge": 10
+        },
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.15,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 25
+      },
+      "control_priority": 0
+    }
+  ]
+}

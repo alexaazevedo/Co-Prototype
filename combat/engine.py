@@ -437,6 +437,10 @@ def load_simulation(config_dir, encounter_path=None, *, duel=None, positions="fr
     def read(name):
         return json.loads((Path(config_dir) / f"{name}.json").read_text(encoding="utf-8"))
     encounter = json.loads(Path(encounter_path).read_text(encoding="utf-8")) if encounter_path else read("encounter")
+    from .encounters import materialize_encounter
+    roster_path = Path(config_dir) / "characters.json"
+    roster = json.loads(roster_path.read_text(encoding="utf-8")) if roster_path.exists() else None
+    encounter = materialize_encounter(encounter, roster)
     if duel is not None:
         from .encounters import make_duel
         encounter = make_duel(encounter, *duel, positions=positions)
