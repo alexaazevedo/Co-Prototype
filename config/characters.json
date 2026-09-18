@@ -109,6 +109,55 @@
       "engagement_priority": 20
     },
     {
+      "id": "disruptor",
+      "name": "Disruptor",
+      "maximum_health": 120,
+      "maximum_stamina": 100,
+      "maximum_mana": 0,
+      "physical_protection": 25,
+      "magical_protection": 10,
+      "engagement_capacity": 1,
+      "attributes": {
+        "maximum_force": 65,
+        "explosive_power": 60,
+        "grip_control": 65,
+        "reflexes": 60,
+        "fine_motor_control": 50,
+        "gross_coordination": 75,
+        "balance": 60,
+        "spatial_awareness": 55,
+        "perception": 55,
+        "situational_awareness": 55
+      },
+      "skills": {
+        "melee": 55,
+        "block": 50,
+        "dodge": 50,
+        "parry": 50,
+        "control": 50,
+        "movement": 50
+      },
+      "actions": [
+        "bash",
+        "withdraw"
+      ],
+      "defenses": [
+        "block",
+        "dodge",
+        "parry",
+        "brace"
+      ],
+      "tactics": {
+        "defense_preferences": {},
+        "action_bonuses": {},
+        "target_preferences": {},
+        "resource_penalty_per_point": 0.1,
+        "engaged_target_bonus": 10,
+        "penetrating_target_bonus": 20
+      },
+      "opportunity_attack": "bash"
+    },
+    {
       "id": "gareth",
       "name": "Gareth",
       "maximum_health": 180,

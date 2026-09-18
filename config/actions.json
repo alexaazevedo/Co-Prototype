@@ -62,6 +62,47 @@
     "usage_conditions": {},
     "base_usefulness": 20
   },
+  "bash": {
+    "name": "Bash",
+    "category": "physical_attack",
+    "target_type": "enemy",
+    "resource_type": "stamina",
+    "resource_cost": 4,
+    "preparation_seconds": 0.4,
+    "recovery_seconds": 0.7,
+    "base_power": 12,
+    "attribute_weights": {
+      "maximum_force": 0.4,
+      "grip_control": 0.3,
+      "gross_coordination": 0.3
+    },
+    "skill": "melee",
+    "range_requirement": "melee",
+    "interruptible": true,
+    "allowed_defenses": [
+      "block",
+      "dodge",
+      "parry",
+      "brace"
+    ],
+    "parryability": "parryable",
+    "effects": [
+      {
+        "type": "stagger",
+        "outcome": "Hit",
+        "recipient": "defender",
+        "duration_seconds": 0.3
+      },
+      {
+        "type": "stagger",
+        "outcome": "Strong Hit",
+        "recipient": "defender",
+        "duration_seconds": 0.3
+      }
+    ],
+    "usage_conditions": {},
+    "base_usefulness": 20
+  },
   "dodge": {
     "name": "Dodge",
     "category": "defense",
