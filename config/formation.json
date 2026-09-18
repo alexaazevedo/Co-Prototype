@@ -34,16 +34,8 @@
         "control": 60,
         "movement": 50
       },
-      "actions": [
-        "sword_attack",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["sword_attack", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "block": 10
@@ -89,17 +81,8 @@
         "control": 40,
         "movement": 72
       },
-      "actions": [
-        "ranged_attack",
-        "knife_attack",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["ranged_attack", "knife_attack", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "dodge": 10
@@ -143,16 +126,8 @@
         "control": 45,
         "movement": 42
       },
-      "actions": [
-        "heavy_attack",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["heavy_attack", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "brace": 8,
@@ -198,17 +173,8 @@
         "control": 48,
         "movement": 74
       },
-      "actions": [
-        "quick_attack",
-        "breakthrough",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["quick_attack", "breakthrough", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "dodge": 8,
@@ -255,17 +221,8 @@
         "control": 48,
         "movement": 74
       },
-      "actions": [
-        "quick_attack",
-        "breakthrough",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["quick_attack", "breakthrough", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "dodge": 8,
@@ -312,17 +269,8 @@
         "control": 48,
         "movement": 74
       },
-      "actions": [
-        "quick_attack",
-        "breakthrough",
-        "withdraw"
-      ],
-      "defenses": [
-        "block",
-        "dodge",
-        "parry",
-        "brace"
-      ],
+      "actions": ["quick_attack", "breakthrough", "withdraw"],
+      "defenses": ["block", "dodge", "parry", "brace"],
       "tactics": {
         "defense_preferences": {
           "dodge": 8,
@@ -337,6 +285,176 @@
       },
       "opportunity_attack": "quick_attack",
       "engagement_priority": 8
+    },
+    {
+      "id": "rook",
+      "name": "Rook",
+      "role": "novice_frontliner",
+
+      "resources": {
+        "health": 135,
+        "stamina": 85,
+        "mana": 0
+      },
+
+      "protection": {
+        "physical": 35,
+        "magical": 10
+      },
+
+      "engagement_capacity": 1,
+
+      "attributes": {
+        "maximum_force": 68,
+        "explosive_power": 58,
+        "grip_control": 61,
+
+        "reflexes": 48,
+        "fine_motor_control": 42,
+        "gross_coordination": 52,
+        "balance": 55,
+        "spatial_awareness": 47,
+
+        "perception": 48,
+        "situational_awareness": 50
+      },
+
+      "skills": {
+        "melee": 56,
+        "block": 54,
+        "dodge": 42,
+        "parry": 46,
+        "control": 49,
+        "movement": 45
+      },
+
+      "actions": ["sword_attack", "withdraw"],
+
+      "defenses": ["block", "dodge", "brace"],
+
+      "defense_preferences": {
+        "block": 8
+      },
+
+      "opportunity_attack": "sword_attack",
+
+      "control_priority": 6,
+
+      "starting_band": "frontline"
+    },
+    {
+      "id": "mira",
+      "name": "Mira",
+      "role": "novice_archer",
+
+      "resources": {
+        "health": 85,
+        "stamina": 75,
+        "mana": 0
+      },
+
+      "protection": {
+        "physical": 15,
+        "magical": 10
+      },
+
+      "engagement_capacity": 0,
+
+      "attributes": {
+        "maximum_force": 43,
+        "explosive_power": 52,
+        "grip_control": 57,
+
+        "reflexes": 56,
+        "fine_motor_control": 71,
+        "gross_coordination": 55,
+        "balance": 49,
+        "spatial_awareness": 66,
+
+        "perception": 63,
+        "situational_awareness": 51
+      },
+
+      "skills": {
+        "ranged": 59,
+        "melee": 34,
+        "block": 25,
+        "dodge": 51,
+        "parry": 28,
+        "control": 25,
+        "movement": 52
+      },
+
+      "actions": ["ranged_attack", "knife_attack", "withdraw"],
+
+      "defenses": ["dodge", "brace"],
+
+      "defense_preferences": {
+        "dodge": 8
+      },
+
+      "opportunity_attack": "knife_attack",
+
+      "control_priority": 2,
+
+      "starting_band": "backline"
+    },
+    {
+      "id": "bran",
+      "name": "Bran",
+      "role": "novice_generalist",
+
+      "resources": {
+        "health": 115,
+        "stamina": 90,
+        "mana": 0
+      },
+
+      "protection": {
+        "physical": 25,
+        "magical": 15
+      },
+
+      "engagement_capacity": 1,
+
+      "attributes": {
+        "maximum_force": 54,
+        "explosive_power": 67,
+        "grip_control": 48,
+
+        "reflexes": 69,
+        "fine_motor_control": 51,
+        "gross_coordination": 64,
+        "balance": 58,
+        "spatial_awareness": 61,
+
+        "perception": 57,
+        "situational_awareness": 45
+      },
+
+      "skills": {
+        "melee": 48,
+        "ranged": 45,
+        "block": 37,
+        "dodge": 58,
+        "parry": 42,
+        "control": 40,
+        "movement": 62
+      },
+
+      "actions": ["quick_attack", "ranged_attack", "withdraw"],
+
+      "defenses": ["dodge", "parry", "brace"],
+
+      "defense_preferences": {
+        "dodge": 5
+      },
+
+      "opportunity_attack": "quick_attack",
+
+      "control_priority": 4,
+
+      "starting_band": "midline"
     }
   ],
   "retreat": {
