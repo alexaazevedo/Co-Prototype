@@ -108,16 +108,13 @@ def render_transcript(events, report, definitions, actions, *, verbose=False):
             heading(event, f"{name(actor)} is STAGGERED by {name(event['source'])}'s "
                     f"{action_name(event['source_action'])}.")
             detail(f"Applied for {number(event['duration'])}s during {event['target_phase'].lower()}.")
-            if event["consequence"] == "action_interrupted":
-                detail(f"{action_name(event['interrupted_action'])} is interrupted; "
-                       f"{number(event['resource_spent'])} {event['resource'].title()} remains spent.")
-                detail("No refund and no normal Recovery; the Stagger lockout applies.")
+            if event["consequence"] == "preparation_extended":
+                detail(f"{action_name(event['delayed_action'])} Preparation is extended by "
+                       f"{number(event['added_preparation_seconds'])}s and continues normally.")
             elif event["consequence"] == "action_lockout":
                 detail("Normal action selection is locked until Stagger expires; reactive defenses remain available.")
             elif event["consequence"] == "recovery_extended":
                 detail(f"Recovery extended by {number(event['added_recovery_seconds'])}s.")
-            else:
-                detail("Preparation is non-interruptible and continues normally.")
         elif kind == "stagger_ignored":
             heading(event, f"Stagger from {name(event['source'])}'s "
                     f"{action_name(event['source_action'])} against {name(actor)} is ignored.")

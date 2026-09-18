@@ -19,8 +19,6 @@ class Character:
     phase_end_tick: int = 0
     stagger_end_tick: int = 0
     pending_recovery_extension_ticks: int = 0
-    preparation_resource: str | None = None
-    preparation_cost: float = 0.0
     incapacitated: bool = False
     retreating: bool = False
     escaped: bool = False
@@ -257,10 +255,7 @@ class Simulation:
                  reason="highest utility; ties use action ID then target ID")
         actor.action, actor.target = selected["action"], selected["target"]
         a = self.actions[actor.action]
-        cost = retreat.action_cost(self, actor, a)
-        self.spend(actor, a["resource_type"], cost, "preparation", actor.action)
-        actor.preparation_resource = a["resource_type"]
-        actor.preparation_cost = cost
+        self.spend(actor, a["resource_type"], retreat.action_cost(self, actor, a), "preparation", actor.action)
         actor.phase = "Preparing"
         actor.phase_end_tick = self.tick + self.ticks(a["preparation_seconds"])
         self.log("preparation_start", actor.id, action=actor.action, target=actor.target,
@@ -290,16 +285,13 @@ class Simulation:
         duration_ticks = self.ticks(duration_seconds)
         target.stagger_end_tick = self.tick + duration_ticks
         details = {**common, "ends_at_tick": target.stagger_end_tick}
-        if phase == "Preparing" and self.actions[target.action]["interruptible"]:
-            interrupted_action = target.action
-            details.update(consequence="action_interrupted", interrupted_action=interrupted_action,
-                           resource=target.preparation_resource, resource_spent=target.preparation_cost,
-                           refunded=0, normal_recovery_applied=False)
-            target.phase, target.action, target.target = "Idle", None, None
-            target.phase_end_tick = 0
-            target.preparation_resource, target.preparation_cost = None, 0.0
-        elif phase == "Preparing":
-            details["consequence"] = "preparation_continues"
+        if phase == "Preparing":
+            previous_end_tick = target.phase_end_tick
+            target.phase_end_tick += duration_ticks
+            details.update(consequence="preparation_extended", delayed_action=target.action,
+                           added_preparation_seconds=duration_seconds,
+                           previous_preparation_end_tick=previous_end_tick,
+                           preparation_ends_at_tick=target.phase_end_tick)
         elif phase == "Recovering":
             target.phase_end_tick += duration_ticks
             details.update(consequence="recovery_extended", added_recovery_seconds=duration_seconds,
@@ -442,7 +434,6 @@ class Simulation:
                          reason="health reached zero; non-dead")
                 target.phase, target.action, target.target = "Idle", None, None
                 target.phase_end_tick = 0
-                target.preparation_resource, target.preparation_cost = None, 0.0
                 positioning.refresh(self)
         if opportunity:
             return
@@ -452,7 +443,6 @@ class Simulation:
         duration_ticks = self.ticks(a["recovery_seconds"]) + actor.pending_recovery_extension_ticks
         actor.pending_recovery_extension_ticks = 0
         actor.phase_end_tick = self.tick + duration_ticks
-        actor.preparation_resource, actor.preparation_cost = None, 0.0
         self.log("recovery_start", actor.id, action=actor.action,
                  duration=float(Decimal(duration_ticks) * Decimal(str(self.balance["tick_seconds"]))),
                  ends_at_tick=actor.phase_end_tick)

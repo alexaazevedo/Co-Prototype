@@ -33,7 +33,7 @@ class StaggerTests(unittest.TestCase):
         self.assertEqual(self.target.phase, "Preparing")
         self.assertEqual(self.target.stamina, stamina - 3)
 
-    def test_interruptible_preparation_loses_cost_and_uses_only_lockout(self):
+    def test_interruptible_preparation_is_extended_without_another_cost(self):
         self.sim.decide(self.target)
         self.assertEqual((self.target.phase, self.target.stamina), ("Preparing", 97))
         original_end = self.target.phase_end_tick
@@ -41,25 +41,19 @@ class StaggerTests(unittest.TestCase):
         self.sim.tick = 1
         self.stagger()
         self.assertEqual((self.target.phase, self.target.action, self.target.target),
-                         ("Idle", None, None))
+                         ("Preparing", "sword_attack", "brute"))
         self.assertEqual(self.target.stamina, 97)
-        self.assertNotEqual(self.target.phase_end_tick, original_end)
-        self.assertEqual((self.target.phase_end_tick, self.target.stagger_end_tick), (0, 4))
+        self.assertEqual((self.target.phase_end_tick, self.target.stagger_end_tick),
+                         (original_end + 3, 4))
         event = next(event for event in self.sim.events if event["event"] == "stagger")
-        self.assertEqual(event["consequence"], "action_interrupted")
-        self.assertEqual((event["interrupted_action"], event["resource"], event["resource_spent"]),
-                         ("sword_attack", "stamina", 3))
-        self.assertEqual(event["refunded"], 0)
-        self.assertFalse(event["normal_recovery_applied"])
+        self.assertEqual((event["consequence"], event["delayed_action"],
+                          event["added_preparation_seconds"],
+                          event["previous_preparation_end_tick"],
+                          event["preparation_ends_at_tick"]),
+                         ("preparation_extended", "sword_attack", 0.3, original_end,
+                          original_end + 3))
 
-        self.sim.tick = 3
-        self.sim.decide(self.target)
-        self.assertEqual(self.target.phase, "Idle")
-        self.sim.tick = 4
-        self.sim.decide(self.target)
-        self.assertEqual(self.target.phase, "Preparing")
-
-    def test_non_interruptible_preparation_continues(self):
+    def test_non_interruptible_preparation_is_also_extended(self):
         self.sim.actions["sword_attack"]["interruptible"] = False
         self.sim.decide(self.target)
         state = (self.target.phase, self.target.action, self.target.target, self.target.phase_end_tick)
@@ -67,11 +61,11 @@ class StaggerTests(unittest.TestCase):
         self.sim.tick = 1
         self.stagger()
         self.assertEqual((self.target.phase, self.target.action, self.target.target,
-                          self.target.phase_end_tick), state)
+                          self.target.phase_end_tick), (*state[:3], state[3] + 3))
         event = next(event for event in self.sim.events if event["event"] == "stagger")
-        self.assertEqual(event["consequence"], "preparation_continues")
+        self.assertEqual(event["consequence"], "preparation_extended")
 
-        self.sim.tick = state[-1]
+        self.sim.tick = state[-1] + 3
         self.sim.execute(self.target)
         self.assertTrue(any(event["event"] == "damage" and event["actor"] == self.target.id
                             for event in self.sim.events))
@@ -111,7 +105,17 @@ class StaggerTests(unittest.TestCase):
         ignored = next(event for event in self.sim.events if event["event"] == "stagger_ignored")
         self.assertEqual(ignored["reason"], "already_staggered")
 
-    def test_transcript_explains_interruption_and_ignored_repeat(self):
+    def test_new_stagger_after_expiry_can_extend_the_same_preparation_again(self):
+        self.sim.decide(self.target)
+        self.sim.tick = 1
+        self.stagger()
+        self.assertEqual(self.target.phase_end_tick, 8)
+        self.sim.tick = 4
+        self.stagger()
+        self.assertEqual(self.target.phase_end_tick, 11)
+        self.assertEqual(len([event for event in self.sim.events if event["event"] == "stagger"]), 2)
+
+    def test_transcript_explains_preparation_delay_and_ignored_repeat(self):
         self.sim.decide(self.target)
         self.sim.tick = 1
         self.stagger()
@@ -121,9 +125,9 @@ class StaggerTests(unittest.TestCase):
         text = render_transcript(self.sim.events, self.sim.report(), self.sim.encounter["combatants"],
                                  self.sim.actions, verbose=True)
         self.assertIn("Brute's Heavy Attack", text)
-        self.assertIn("Sword Attack is interrupted", text)
-        self.assertIn("3 Stamina remains spent", text)
-        self.assertIn("No refund and no normal Recovery", text)
+        self.assertIn("Sword Attack Preparation is extended by 0.3s", text)
+        self.assertIn("continues normally", text)
+        self.assertNotIn("interrupted", text)
         self.assertIn("later effect does not refresh or extend", text)
 
     def test_strong_parry_staggers_execution_and_extends_upcoming_recovery(self):

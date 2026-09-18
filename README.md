@@ -69,7 +69,8 @@ access, Engagement Capacity, breakthrough, withdrawal, retreat and Opportunity A
 Spellcasting, support and temporary effects beyond the narrow Stagger mechanic
 are future stages. Pressured and Isolated are not yet modeled. Protected/Exposed
 indicate access and grant no generic Quality bonus. The action `interruptible`
-field now determines whether Stagger cancels an action during Preparation.
+field is reserved for a future effect that directly cancels actions; Stagger does
+not use it.
 Unsupported effects and unknown usage conditions are rejected rather than silently applied.
 
 ## Combat access principles
@@ -225,9 +226,9 @@ Attack on Strong Hit and Parry on Strong Defense, both with a 0.3-second duratio
 Stagger has a phase-specific consequence when applied:
 
 - Idle: normal action selection is locked until Stagger expires.
-- Preparing an interruptible action: the action is cancelled, its paid resource is
-  not refunded, and its normal Recovery is not applied. The Stagger lockout remains.
-- Preparing a non-interruptible action: Preparation continues without another penalty.
+- Preparing: the current Preparation end is extended by the Stagger duration. The
+  action and its existing resource payment remain unchanged, regardless of its
+  `interruptible` value.
 - Recovering: the existing Recovery end is extended by the Stagger duration.
 - Executing: the duration extends the Recovery that immediately follows Execution.
 
@@ -239,7 +240,8 @@ A Strong Defense Parry now produces its Recovery extension through this shared
 Stagger rule. When an Opportunity Attack is strongly parried, its Stagger effect on
 the controller is suppressed so it cannot alter the controller's unrelated normal
 action or timing; the suppression is logged. Stun, other temporary effects and a
-general status-effect framework remain future work.
+general status-effect framework remain future work. A future Interrupt effect may
+use the `interruptible` property to cancel actions and apply its own costs.
 
 `dodge_practical` is provisional prototype scaffolding. When present and false it
 can disable Dodge for a character, but it is not currently a locked general
